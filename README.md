@@ -21,7 +21,7 @@ Inventory file should have correct A-record and IP in **dapp** section
 
 For example:
 
-<code>
+<pre><code>
 [all:vars]
 ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 
@@ -30,7 +30,7 @@ dapp.company.io ansible_host=11.194.53.68
 
 [dapp:vars]
 serviceName=dapp
-</code>
+</code></pre>
 
 Third:
 ```ansible-playbook -i inventory/hosts.yaml -v main.yaml```
@@ -58,7 +58,6 @@ Solution very simple. Go to proxy docker-compose directory ( for example ```/opt
 
 # Support
 
-We can help you in telegram chats
+[Russian telegram group](https://t.me/itgoldio_support_ru)
 
-    RU: https://t.me/itgoldio_support_ru
-    EN: https://t.me/tgoldio_support_en
+[English telegram group](https://t.me/tgoldio_support_en)
