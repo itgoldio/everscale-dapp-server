@@ -1,0 +1,29 @@
+
+- name: Install prerequisites for Docker repository
+  dnf:
+    name:
+      - jq
+      - python3-libselinux
+      - python3
+      - python3-pip
+    state: latest
+
+- name: Add docker repo
+  yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable - $basearch
+    file: docker-ce-stable
+    baseurl: https://download.docker.com/linux/centos/8/$basearch/stable
+    gpgcheck: yes
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: yes
+    
+- name: Install docker and it's dependencies
+  dnf:
+    name:        
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: latest
+    update_cache: yes
+  notify: enable docker

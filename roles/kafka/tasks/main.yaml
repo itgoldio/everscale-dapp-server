@@ -1,0 +1,60 @@
+- name: make sure destination directory exists
+  file:
+    recurse: yes
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - '{{ dapp_dir }}/kafka/files/kafka-connect-arangodb'
+    - '{{ dapp_dir }}/kafka/build_check/connectors'
+
+- name: set alias hostname for kafka at 127.0.0.1
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127.0.0.1 kafka'
+    line: 127.0.0.1 kafka
+
+- name: upload files to compose dir
+  synchronize:
+    src='files/root/'
+    dest='{{ dapp_dir }}/kafka'
+
+- name: upload files ( build_check )
+  synchronize:
+    src='files/build_check/'
+    dest='{{ dapp_dir }}/kafka/build_check'
+
+- name: upload files ( kafka-connect )
+  synchronize:
+    src='files/kafka-connect-arangodb/'
+    dest='{{ dapp_dir }}/kafka/files/'
+
+- name: render template
+  template:
+    src: "{{ item }}"
+    dest: "{{ dapp_dir }}/kafka/build_check/connectors/{{ item | basename | regex_replace('.j2$', '') }}"
+  with_fileglob:
+    - ../templates/connectors/*.j2
+
+- name: copy docker-compose file
+  template:
+    src: 'docker-compose.yaml.j2'
+    dest: '{{ dapp_dir }}/kafka/docker-compose.yaml'
+
+- name: set permissions
+  file:
+    path: '{{ item }}'
+    state: file
+    mode: u+rx,g+rx,o-rwx
+  loop:
+    - '{{ dapp_dir }}/kafka/launch.sh'
+    - '{{ dapp_dir }}/kafka/build_check/check.sh'
+    - '{{ dapp_dir }}/kafka/build_check/create_connectors.sh'
+    - '{{ dapp_dir }}/kafka/build_check/create_topics.sh'
+    - '{{ dapp_dir }}/kafka/build_check/entrypoint.sh'
+    - '{{ dapp_dir }}/kafka/build_check/connect-cli'
+
+- name: restart service
+  shell: /usr/local/bin/docker-compose up -d
+  args:
+    chdir: "{{ dapp_dir }}/kafka"
+

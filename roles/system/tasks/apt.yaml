@@ -1,0 +1,89 @@
+- name: Install packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - jq
+      - wget
+      - mc
+      - git
+    state: present
+    update_cache: yes
+
+- name: Add Docker s GPG key for ubuntu from official site
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Verify gpg key with the fingerprint
+  apt_key:
+    id: 0EBFCD88
+    state: present
+
+- name: Configure Docker for ubuntu stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu trusty stable
+    state: present
+    update_cache: yes
+  when: ansible_distribution_version == "14.04"
+
+- name: Configure Docker for ubuntu stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    state: present
+    update_cache: yes
+  when: ansible_distribution_version == "16.04"
+
+- name: Configure Docker for ubuntu stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+    state: present
+    update_cache: yes
+  when: ansible_distribution_version == "18.04"
+
+- name: Configure Docker for ubuntu stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+    state: present
+    update_cache: yes
+  when: ansible_distribution_version == "20.04"
+
+- name: Configure Docker for ubuntu stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu impish stable
+    state: present
+    update_cache: yes
+  when: ansible_distribution_version == "21.10"
+
+- name: Install docker-ce
+  apt:
+    name: docker-ce
+    state: present
+    update_cache: yes
+
+- name: Install docker-compose from official github repo
+  get_url:
+    url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: 'u+x,g+x'
+
+- block:
+    - name: Install ntp package
+      apt:
+        name: chrony
+        state: latest
+        update_cache: yes
+
+    - name: Copy the chrony.conf file
+      template:
+        src: ntp.conf.j2
+        dest: /etc/chrony/chrony.conf
+      notify: "restart ntp"
+  when: ntp_enabled is defined and ntp_enabled|bool
+
+- name: Set SELinux in permissive mode until the machine is rebooted
+  command: setenforce 0
+  ignore_errors: true
+  changed_when: false

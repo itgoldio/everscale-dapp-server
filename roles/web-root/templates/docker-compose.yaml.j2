@@ -1,0 +1,18 @@
+services:
+  web.root:
+    image: nginx:1.13.12
+    container_name: web.root
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST={{ hostname }}
+      - LETSENCRYPT_HOST={{ le_hostname }}
+      - LETSENCRYPT_EMAIL="{{ le_email }}"
+    networks:
+      - {{ proxy_net }}
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+    expose:
+      - "80"
+networks:
+  {{ proxy_net }}:
+    external: true

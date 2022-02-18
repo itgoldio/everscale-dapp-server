@@ -1,0 +1,65 @@
+- name: make sure destination directory exists
+  file:
+    recurse: yes
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - '{{ dapp_dir }}/nginx/logs/'
+    - '{{ dapp_dir }}/nginx/'
+    - '{{ dapp_dir }}/nginx/htpasswd/'
+    - '{{ dapp_dir }}/nginx/logs/'
+    - '{{ dapp_dir }}/nginx/build/'
+    - '{{ dapp_dir }}/nginx/vhost.d/'
+
+- name: upload main config files
+  synchronize:
+    src='files/conf/'
+    dest='{{ dapp_dir }}/nginx/'
+
+- name: upload acme-challenge file
+  synchronize:
+    src='files/default'
+    dest='{{ dapp_dir }}/nginx/vhost.d/default'
+
+- name: upload acme-challenge for graphql
+  synchronize:
+    src='files/graphql'
+    dest='{{ dapp_dir }}/nginx/vhost.d/{{ hostname }}'
+
+- name: "Create a network"
+  docker_network:
+    name: "{{ docker_network_name }}"
+
+- name: render template docker-compose
+  template:
+    src: "{{ item }}"
+    dest: "{{ dapp_dir }}/nginx/{{ item | basename | regex_replace('.j2$', '') }}"
+  with_fileglob:
+    - ../templates/docker-compose.yaml.j2
+
+- name: render template
+  template:
+    src: "{{ item }}"
+    dest: "{{ dapp_dir }}/nginx/build/{{ item | basename | regex_replace('.j2$', '') }}"
+  with_fileglob:
+    - ../templates/Dockerfile.j2
+
+- name: generate htpasswd for arangodb vhost
+  community.general.htpasswd:
+    path: '{{ dapp_dir }}/nginx/htpasswd/{{ arangodb_host }}.{{ hostname }}'
+    name: admin
+    password: "{{ arangodb_password }}"
+    crypt_scheme: md5_crypt
+
+- name: generate htpasswd for arangoni vhost
+  community.general.htpasswd:
+    path: '{{ dapp_dir }}/nginx/htpasswd/{{ arangoni_host }}.{{ hostname }}'
+    name: admin
+    password: "{{ arangodb_password }}"
+    crypt_scheme: md5_crypt
+
+- name: restart service
+  shell: /usr/local/bin/docker-compose up -d
+  args:
+    chdir: "{{ dapp_dir }}/nginx"
+

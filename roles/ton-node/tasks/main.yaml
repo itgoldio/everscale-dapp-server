@@ -1,0 +1,239 @@
+- name: make sure destination directory exists
+  file:
+    recurse: yes
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - '{{ dapp_dir }}/ton-node/build'
+    - '{{ dapp_dir }}/ton-node/configs'
+    - '{{ dapp_dir }}/ton-node/scripts'
+    - '{{ dapp_dir }}/ton-node/logs/'
+    - '/tmp/metrics/'
+
+- name: upload files
+  synchronize:
+    src='files/'
+    dest='{{ dapp_dir }}/ton-node/'
+
+- name: render compose template
+  template:
+    src: 'docker-compose.yaml.j2'
+    dest: '{{ dapp_dir }}/ton-node/docker-compose.yaml'
+
+- name: render config template
+  template:
+    src: 'default_config.json.j2'
+    dest: '{{ dapp_dir }}{{ node_configs_path }}/default_config.json'
+
+- name: env template
+  template:
+    src: 'generate_console_config.sh.j2'
+    dest: '{{ dapp_dir }}/ton-node/scripts/generate_console_config.sh'
+
+- name: Dockerfile template
+  template:
+    src: 'Dockerfile.j2'
+    dest: '{{ dapp_dir }}/ton-node/build/Dockerfile'
+
+- name: set permissions
+  file:
+    path: '{{ item }}'
+    state: file
+    mode: u+rx,g+rx,o-rwx
+  loop:
+    - '{{ dapp_dir }}/ton-node/build/rust_install.sh'
+    - '{{ dapp_dir }}/ton-node/scripts/entrypoint.sh'
+    - '{{ dapp_dir }}/ton-node/scripts/generate_console_config.sh'
+    - '{{ dapp_dir }}/ton-node/scripts/msig_genaddr.sh'
+    - '{{ dapp_dir }}/ton-node/scripts/send_depool_tick_tock.sh'
+    - '{{ dapp_dir }}/ton-node/scripts/validator.sh'
+
+- name: Clone a github repository ton-node
+  git:
+    repo: https://github.com/tonlabs/ton-labs-node.git
+    dest: "{{ dapp_dir }}/ton-node/build/ton-node"
+    clone: yes
+    update: yes
+    version: master
+
+- name: Clone a github repository ton-labs-node-tools
+  git:
+    repo: https://github.com/tonlabs/ton-labs-node-tools.git
+    dest: "{{ dapp_dir }}/ton-node/build/ton-labs-node-tools"
+    clone: yes
+    update: yes
+    version: master
+
+- name: Clone a github repository tonos-cli
+  git:
+    repo: https://github.com/tonlabs/tonos-cli.git
+    dest: "{{ dapp_dir }}/ton-node/build/tonos-cli"
+    clone: yes
+    update: yes
+    version: master
+
+- name: restart service
+  shell: /usr/local/bin/docker-compose up -d
+  args:
+    chdir: "{{ dapp_dir }}/ton-node"
+
+- name: "Check if {{ node_configs_path }} dir is empty"
+  find:
+    paths: "{{ dapp_dir }}{{ node_configs_path }}"
+    file_type: file
+    patterns: '*'
+  register: configDirNonEmpty
+  when: node_generate_console_config is defined and node_generate_console_config == 1
+
+# - name: generate_console_config
+#   community.docker.docker_container_exec:
+#     container: rnode
+#     command: /bin/bash -c "/ton-node/scripts/generate_console_config.sh"
+#     # chdir: /ton-node/
+#   register: result
+#   when: node_generate_console_config
+
+- name: Delete old configs
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ dapp_dir }}{{ node_configs_path }}/config.json"
+    - "{{ dapp_dir }}{{ node_configs_path }}/console.json"
+    - "{{ dapp_dir }}{{ node_configs_path }}/console_config.json"
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+- name: Config tonos-cli
+  community.docker.docker_container_exec: 
+    command: "{{ item }}"
+    container: rnode
+  args:
+    chdir: "{{ node_configs_path }}"
+  loop:
+    - "/ton-node/tools/tonos-cli config endpoint reset"
+    - "/ton-node/tools/tonos-cli config endpoint add {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} {{ ton_node_global_config_URL_list[ton_node_config].DAPP_endpoints }}"
+    - "/ton-node/tools/tonos-cli --url {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} config"
+  when: configDirNonEmpty.matched == 0 or (force_genconfig is defined and force_genconfig == True)
+
+- name: Generate keys
+  community.docker.docker_container_exec:
+    container: rnode
+    command: /bin/bash -c "/ton-node/tools/keygen > {{ ansible_hostname }}_client_keys.json"
+  args:
+    chdir: "{{ node_configs_path }}"
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+- name: Generate ton_node key config
+  community.docker.docker_container_exec:
+    container: rnode
+    command: /bin/bash -c "/ton-node/ton_node --configs {{ node_configs_path }} --ckey \"$(jq -c .public {{ node_configs_path }}/{{ ansible_hostname }}_client_keys.json)\" &"
+  register: ton_node_key_generated
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+- name: Wait for console_config.json creation
+  wait_for:
+    path: "{{ dapp_dir }}{{ node_configs_path }}/console_config.json"
+  when: ton_node_key_generated.changed
+
+- name: Restart a container with ton_node
+  community.docker.docker_container:
+    name: rnode
+    state: started
+    restart: yes
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+- name: Configure console and node ports
+  shell: "{{ item }}"
+  loop:
+    - "jq '.adnl_node.ip_address = \"0.0.0.0:{{ node_adnl_port }}\"' {{ dapp_dir }}{{ node_configs_path }}/config.json > {{ dapp_dir }}{{ node_configs_path }}/config_tmp.json"
+    - "jq '.control_server.address = \"127.0.0.1:{{ node_console_port }}\"' {{ dapp_dir }}{{ node_configs_path }}/config_tmp.json > {{ dapp_dir }}{{ node_configs_path }}/config.json"
+    - "jq '.server_address = \"127.0.0.1:{{ node_console_port }}\"' {{ dapp_dir }}{{ node_configs_path }}/console_config.json > {{ dapp_dir }}{{ node_configs_path }}/console_config_tmp.json"
+    - 'cat {{ dapp_dir }}{{ node_configs_path }}/console_config_tmp.json > {{ dapp_dir }}{{ node_configs_path }}/console_config.json'
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+- name: Generate console.json config
+  shell: "{{ item }}"
+  loop:
+    - "jq \".config = $(cat {{ dapp_dir }}{{ node_configs_path }}/console_config.json)\" {{ dapp_dir }}{{ node_configs_path }}/console_template.json > {{ dapp_dir }}{{ node_configs_path }}/console_tmp.json"
+    - "jq \".config.client_key = $(jq .private {{ dapp_dir }}{{ node_configs_path }}/{{ ansible_hostname }}_client_keys.json)\" {{ dapp_dir }}{{ node_configs_path }}/console_tmp.json > {{ dapp_dir }}{{ node_configs_path }}/console.json"
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+- name: Delete temp file
+  file:
+    path: "{{ dapp_dir }}{{ node_configs_path }}/{{ item }}"
+    state: absent
+  loop:
+    - console_config_tmp.json
+    - console_tmp.json
+    - config_tmp.json
+    - console_template.json
+
+- name: Firewall block
+  block:
+    - name: Checking firewalld status
+      command: systemctl status firewalld
+      ignore_errors: yes
+      register: firewalld_node_state
+
+    - name: Open node ports with firewalld
+      firewalld:
+        immediate: yes
+        permanent: yes
+        port: "{{ item }}"
+        state: enabled
+        zone: public
+      loop:
+        - "{{ node_adnl_port }}/udp"
+        - "{{ node_console_port }}/tcp"
+      when: "'active (running)' in firewalld_node_state.stdout"
+  when: ansible_pkg_mgr == "dnf"
+
+
+- name: Restart a container with ton_node after config regen
+  community.docker.docker_container:
+    name: rnode
+    state: started
+    restart: yes
+  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+
+# - name: restart service
+#   shell: /usr/local/bin/docker-compose stop
+#   args:
+#     chdir: "{{ dapp_dir }}/ton-node"
+
+# - name: restart service
+#   shell: /usr/local/bin/docker-compose up -d
+#   args:
+#     chdir: "{{ dapp_dir }}/ton-node"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

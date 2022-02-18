@@ -1,0 +1,20 @@
+---
+- name: Include os specific tasks
+  include_tasks: "{{ ansible_pkg_mgr }}.yaml"
+
+- name: Upgrade pip
+  pip:
+    name:
+      - pip
+    state: latest
+  vars:
+    ansible_python_interpreter: python3
+
+- name: Install docker python package
+  pip:
+    name:
+      - docker
+      - docker-compose
+    state: latest
+  vars:
+    ansible_python_interpreter: python3

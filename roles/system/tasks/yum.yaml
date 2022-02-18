@@ -1,0 +1,36 @@
+---
+- name: installing yum-utils and stuff
+  yum:
+    name:
+      - yum-utils
+      - curl
+      - jq
+      - python3
+      - python3-pip
+      - mc
+      - git
+      - device-mapper-persistent-data
+    state: latest
+  vars:
+    ansible_python_interpreter: python2
+
+- name: add docker repository
+  shell: >
+    yum-config-manager
+    --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+  args:
+    creates: /etc/yum.repos.d/docker-ce.repo
+
+- name: install docker and it's dependencies
+  yum:
+    name:
+      - docker-ce
+    state: present
+    update_cache: yes
+  notify: enable_docker
+
+- name: Install docker compose 
+  pip: 
+    name: docker-compose 
+    state: present
+

@@ -1,0 +1,33 @@
+[database]
+directory = /arango/db
+
+[server]
+endpoint = tcp://[::]:{{ arangodb_port }}
+storage-engine = auto
+authentication = false
+statistics = true
+
+[javascript]
+startup-directory = /usr/share/arangodb3/js
+app-path = /var/lib/arangodb3-apps
+
+[foxx]
+
+[log]
+level = mmap=info
+level = performance=info
+level = warning
+output = +
+
+[cluster]
+
+[rocksdb]
+block-cache-size = {{ arangodb_rocksdb_block_cache_size }}
+total-write-buffer-size = {{ arangodb_rocksdb_total_write_buffer_size }}
+enforce-block-cache-size-limit = true
+
+[query]
+memory-limit = {{ arangodb_query_memory_limit }}
+
+[cache]
+cache.size = {{ arangodb_cache_size }}

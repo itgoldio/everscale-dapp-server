@@ -1,0 +1,51 @@
+- name: make sure destination directory exists
+  file:
+    recurse: yes
+    path: '{{ item }}'
+    state: directory
+  loop:
+    - '{{ dapp_dir }}/q-server/build/'
+  
+- name: Clone a github repository
+  git:
+    repo: https://github.com/tonlabs/ton-q-server
+    dest: "{{ dapp_dir }}/q-server/build/ton-q-server"
+    clone: yes
+    update: yes
+    version: master
+
+- name: upload files to build
+  synchronize:
+    src='files/'
+    dest='{{ dapp_dir }}/q-server/build'
+
+- name: templates for compose
+  template:
+    src: "{{ item }}"
+    dest: "{{ dapp_dir }}/q-server/{{ item | basename | regex_replace('.j2$', '') }}"
+  with_fileglob:
+    - ../templates/*.j2
+
+- name: env template
+  template:
+    src: '.env.j2'
+    dest: '{{ dapp_dir }}/q-server/.env'
+
+- name: templates for build
+  template:
+    src: "{{ item }}"
+    dest: "{{ dapp_dir }}/q-server/build/{{ item | basename | regex_replace('.j2$', '') }}"
+  with_fileglob:
+    - ../templates/build/*.j2
+
+- name: config template for build
+  template:
+    src: "{{ item }}"
+    dest: "{{ dapp_dir }}/q-server/build/{{ item | basename | regex_replace('.j2$', '') }}"
+  with_fileglob:
+    - ../templates/config.json.j2
+
+- name: restart service
+  shell: /usr/local/bin/docker-compose up -d
+  args:
+    chdir: "{{ dapp_dir }}/q-server"

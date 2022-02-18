@@ -1,0 +1,23 @@
+version: '2.3'
+services:
+  statsd:
+    image: prom/statsd-exporter:v0.12.2
+    container_name: statsd
+    restart: unless-stopped
+    expose:
+      - "${UDP_PORT}/udp"
+    ports:
+      - "${IntIP:-0.0.0.0}:${TCP_PORT}:${TCP_PORT}"
+    networks:
+      - {{ statsd_net }}
+    volumes:
+      - ./statsd-mapping.yaml:/statsd-mappings/statsd-mapping.yaml
+    command: ["${ARGS}"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "10"
+networks:
+  {{ statsd_net }}:
+    external: true

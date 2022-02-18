@@ -1,0 +1,105 @@
+dapp_dir: "/opt/dapp"
+
+# chrony
+ntp_server: "pool.ntp.org"
+
+docker_version: "20.10.12"
+
+ton_node_config: "main"
+
+ton_node_global_config_URL_list:
+  main:
+    config_URL: "https://raw.githubusercontent.com/tonlabs/main.ton.dev/master/configs/ton-global.config.json"
+    DAPP_address: "https://main.ton.dev"
+    DAPP_endpoints: "https://eri01.main.everos.dev,https://gra01.main.everos.dev,https://gra02.main.everos.dev,https://lim01.main.everos.dev,https://rbx01.main.everos.dev,https://main2.ton.dev,https://main3.ton.dev,https://main4.ton.dev"
+  net:
+    config_URL: "https://raw.githubusercontent.com/tonlabs/net.ton.dev/master/configs/ton-global.config.json"
+    DAPP_address: "https://net.ton.dev"
+    DAPP_endpoints: "https://net1.ton.dev,https://net5.ton.dev"
+  fld:
+    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/fld.ton.dev/main/configs/fld.ton.dev/ton-global.config.json"
+    DAPP_address: "https://gql.custler.net"
+    DAPP_endpoints: "https://gql.custler.net"
+  rfld:
+    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/custler.uninode/main/configs/rfld.ton.dev/ton-global.config.json"
+    DAPP_address: "https://rfld.ton.dev"
+    DAPP_endpoints: "https://rfld-dapp01.ds1.itgold.io"
+
+# docker
+docker_network_name: "dapp_network"
+
+everscale_network: "main.ton.dev"
+
+# single hostname var for all docker-compose env's templates
+# for example:
+# hostname: "dapp.main.ton.dev"
+hostname: "{{ inventory_hostname }}"
+
+# arangodb
+arangodb_port: 8529
+arangodb_mem_limit: 5G
+arangodb_net: "{{ docker_network_name }}"
+
+arangodb_host: "arangodb"
+arangoni_host: "arangoni"
+arangodb_user: "root"
+arangodb_password: "Sijkmde26cBHjddxs"
+arangodb_database_name: "blockchain"
+
+# Set this values as 30% of RAM in bytes
+arangodb_rocksdb_block_cache_size: 10307921510
+arangodb_rocksdb_total_write_buffer_size: 10307921510
+
+arangodb_query_memory_limit: 512000000
+# This value set as 20% of RAM in bytes
+arangodb_cache_size: 6871947674
+
+# var for letsencrypt 
+le_hostname: "{{ hostname }}"
+le_email: "kewlhaxor@main.ton.dev"
+
+# proxy
+proxy_net: "{{ docker_network_name }}"
+
+# q-server
+q_server_port: 4000
+q_server_mem_limit: "5G"
+q_server_net: "{{ docker_network_name }}"
+
+# statsd
+statsd_udp_port: 9125
+statsd_tcp_port: 9102
+statsd_domain: "statsd:"
+statsd_net: "{{ docker_network_name }}"
+
+# node
+node_generate_console_config: 1
+node_net: "{{ docker_network_name }}"
+node_adnl_port: 30303
+node_console_port: 4925
+node_validator_name: "dapp-validator"
+node_network_type: "{{ everscale_network }}"
+node_configs_path: "/ton-node/configs"
+node_statsd_domain: "{{ statsd_domain }}"
+node_statsd_port: "{{ statsd_udp_port }}"
+node_stake:
+node_msig_enable: "no"
+node_sdk_url:
+node_sdk_endpoint_url_list:
+#node_mem_limit: "128g"
+node_mem_limit: "20g"
+node_cmd_1: "normal"
+node_cmd_2: "novalidate"
+node_extra_args:
+node_enable_kafka: 1
+node_rust_net_enable: "yes"
+node_elector_type: "fift"
+node_depool_enable: "no"
+
+# kafka
+kafka_host: "kafka"
+kafka_mem_limit: "32G"
+kafka_port_internal: 9092
+kafka_port_external: "{{ kafka_port_internal }}"
+kafka_net: "{{ docker_network_name }}"
+

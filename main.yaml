@@ -1,0 +1,23 @@
+---
+- hosts: all
+  gather_facts: yes
+  handlers:
+  pre_tasks:
+    - name: install python
+      raw: (test -e /usr/bin/python || test -e /usr/bin/python2 || test -e /usr/bin/python3) || (yum install -y python-minimal || yum install -y python2-minimal || yum install -y python3)
+      register: output
+      changed_when: output.stdout != ""
+  vars_files:
+    - vars/vars.yaml
+  roles:
+    - system
+    - docker
+    - nginx
+    - web-root
+    - arangodb
+    - kafka
+    - q-server
+    - statsd
+    - ton-node
+  tags: [ "all" ]
+
