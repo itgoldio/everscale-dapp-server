@@ -26,7 +26,7 @@
 - name: upload files ( kafka-connect )
   synchronize:
     src='files/kafka-connect-arangodb/'
-    dest='{{ dapp_dir }}/kafka/files/'
+    dest='{{ dapp_dir }}/kafka/files/kafka-connect-arangodb/'
 
 - name: render template
   template:

@@ -26,4 +26,10 @@
     update_cache: yes
   vars:
     ansible_python_interpreter: python2
-  notify: enable docker
+  
+  
+- name: reload docker service
+  service:
+    name: docker
+    enabled: yes
+    state: restarted

@@ -50,11 +50,12 @@
 
 - name: Clone a github repository ton-node
   git:
-    repo: https://github.com/tonlabs/ton-labs-node.git
+    repo: "{{ node_repo }}"
     dest: "{{ dapp_dir }}/ton-node/build/ton-node"
     clone: yes
-    update: yes
-    version: master
+    # update: yes
+    # version: master
+    version: "{{ node_commit_id }}"
 
 - name: Clone a github repository ton-labs-node-tools
   git:

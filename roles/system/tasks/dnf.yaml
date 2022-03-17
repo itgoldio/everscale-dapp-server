@@ -35,7 +35,12 @@
   retries: 10
   delay: 10
   until: install_state.rc == 0
-  notify: enable_docker
+  
+- name: reload docker service
+  service:
+    name: docker
+    enabled: yes
+    state: restarted
 
 - name: Install system packages
   dnf:
@@ -66,7 +71,6 @@
       template:
         src: chrony.conf.j2
         dest: /etc/chrony.conf
-      notify: "restart chronyd"
   when: ntp_enabled is defined and ntp_enabled|bool
 
 - name: Disable SELinux at next reboot

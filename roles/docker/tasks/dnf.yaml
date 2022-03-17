@@ -26,4 +26,9 @@
       - containerd.io
     state: latest
     update_cache: yes
-  notify: enable docker
+
+- name: reload docker service
+  service:
+    name: docker
+    enabled: yes
+    state: restarted

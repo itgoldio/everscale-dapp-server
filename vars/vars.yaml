@@ -73,6 +73,8 @@ statsd_domain: "statsd:"
 statsd_net: "{{ docker_network_name }}"
 
 # node
+node_repo: "https://github.com/tonlabs/ton-labs-node"
+node_commit_id: "3037a6cf279aac5826035c66d8b822fbdecf3e1a"
 node_generate_console_config: 1
 node_net: "{{ docker_network_name }}"
 node_adnl_port: 30303

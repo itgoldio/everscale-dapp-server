@@ -80,7 +80,12 @@
       template:
         src: ntp.conf.j2
         dest: /etc/chrony/chrony.conf
-      notify: "restart ntp"
+
+    - name: reload chrony service
+      service:
+        name: chronyd
+        enabled: yes
+        state: restarted
   when: ntp_enabled is defined and ntp_enabled|bool
 
 - name: Set SELinux in permissive mode until the machine is rebooted

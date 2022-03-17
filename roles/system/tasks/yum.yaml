@@ -27,7 +27,12 @@
       - docker-ce
     state: present
     update_cache: yes
-  notify: enable_docker
+
+- name: reload docker service
+  service:
+    name: docker
+    enabled: yes
+    state: restarted
 
 - name: Install docker compose 
   pip: 
