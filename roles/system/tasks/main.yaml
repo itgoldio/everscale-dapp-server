@@ -3,6 +3,7 @@
   pip:
     name:
       - pip
+      - passlib
     state: latest
   vars:
     ansible_python_interpreter: python3
