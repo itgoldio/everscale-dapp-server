@@ -74,7 +74,7 @@
     version: master
 
 - name: restart service
-  shell: /usr/local/bin/docker-compose up -d
+  shell: /usr/local/bin/docker-compose down ; /usr/local/bin/docker-compose up -d
   args:
     chdir: "{{ dapp_dir }}/ton-node"
 
