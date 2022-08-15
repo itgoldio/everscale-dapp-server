@@ -1,173 +1,370 @@
-- name: make sure destination directory exists
-  file:
-    recurse: yes
-    path: '{{ item }}'
-    state: directory
-  loop:
-    - '{{ dapp_dir }}/ton-node/build'
-    - '{{ dapp_dir }}/ton-node/configs'
-    - '{{ dapp_dir }}/ton-node/scripts'
-    - '{{ dapp_dir }}/ton-node/logs/'
-    - '/tmp/metrics/'
+---
 
-- name: upload files
-  synchronize:
-    src='files/'
-    dest='{{ dapp_dir }}/ton-node/'
+- name: Create EVERSCALE user group
+  group:
+    name: "{{ everscale_group }}"
+    state: present
 
-- name: render compose template
-  template:
-    src: 'docker-compose.yaml.j2'
-    dest: '{{ dapp_dir }}/ton-node/docker-compose.yaml'
+- name: Create EVERSCALE user
+  user:
+    name: "{{ everscale_user }}"
+    comment: "Everscale node user"
+    group: "{{ everscale_group }}"
+    shell: /bin/bash
+    state: present
+  register: everscale_user_created
 
-- name: render config template
-  template:
-    src: 'default_config.json.j2'
-    dest: '{{ dapp_dir }}{{ node_configs_path }}/default_config.json'
+- name: Include os specific tasks
+  include_tasks: "{{ ansible_pkg_mgr }}.yml"
 
-- name: env template
-  template:
-    src: 'generate_console_config.sh.j2'
-    dest: '{{ dapp_dir }}/ton-node/scripts/generate_console_config.sh'
+- name: Set home directory variable
+  set_fact:
+    everscale_user_home: "{{ everscale_user_created.home }}"
 
-- name: Dockerfile template
-  template:
-    src: 'Dockerfile.j2'
-    dest: '{{ dapp_dir }}/ton-node/build/Dockerfile'
+- name: Stats libzstd.so
+  stat:
+    path: "/usr/local/lib/libzstd.so.{{ zstd_version }}"
+  register: libzstd_exists
 
-- name: set permissions
-  file:
-    path: '{{ item }}'
-    state: file
-    mode: u+rx,g+rx,o-rwx
-  loop:
-    - '{{ dapp_dir }}/ton-node/build/rust_install.sh'
-    - '{{ dapp_dir }}/ton-node/scripts/entrypoint.sh'
-    - '{{ dapp_dir }}/ton-node/scripts/generate_console_config.sh'
-    - '{{ dapp_dir }}/ton-node/scripts/msig_genaddr.sh'
-    - '{{ dapp_dir }}/ton-node/scripts/send_depool_tick_tock.sh'
-    - '{{ dapp_dir }}/ton-node/scripts/validator.sh'
+- name: Download and extract zstd sources
+  unarchive:
+    src: 'https://github.com/facebook/zstd/releases/download/v{{ zstd_version }}/zstd-{{ zstd_version }}.tar.gz'
+    dest: /usr/local/src
+    remote_src: yes
+  when: not libzstd_exists.stat.exists
 
-- name: Clone a github repository ton-node
-  git:
-    repo: "{{ node_repo }}"
-    dest: "{{ dapp_dir }}/ton-node/build/ton-node"
-    clone: yes
-    # update: yes
-    # version: master
-    version: "{{ node_commit_id }}"
-
-- name: Clone a github repository ton-labs-node-tools
-  git:
-    repo: https://github.com/tonlabs/ton-labs-node-tools.git
-    dest: "{{ dapp_dir }}/ton-node/build/ton-labs-node-tools"
-    clone: yes
-    update: yes
-    version: master
-
-- name: Clone a github repository tonos-cli
-  git:
-    repo: https://github.com/tonlabs/tonos-cli.git
-    dest: "{{ dapp_dir }}/ton-node/build/tonos-cli"
-    clone: yes
-    update: yes
-    version: master
-
-- name: restart service
-  shell: /usr/local/bin/docker-compose down ; /usr/local/bin/docker-compose up -d
+- name: Compile zstd (if not exist)
+  command: 'make install'
   args:
-    chdir: "{{ dapp_dir }}/ton-node"
+    chdir: '/usr/local/src/zstd-{{ zstd_version }}'
+  when: not libzstd_exists.stat.exists
 
-- name: "Check if {{ node_configs_path }} dir is empty"
+- name: Download Rust init
+  get_url:
+    url: '{{ rustup_mirror }}/{{ rustup_platform }}/rustup-init'
+    dest: '/usr/local/bin/rustup-init'
+    mode: u=rwx,g=rx,o=
+
+- name: Install Rust
+  command: '/usr/local/bin/rustup-init -y --default-toolchain {{ rustup_default_toolchain }}'
+
+- name: Get Rust version
+  command: '{{ ansible_env.HOME }}/.cargo/bin/rustc -V'
+  changed_when: false
+  register: rust_version
+
+- name: Create TON node dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rwx,g=rx,o=
+  loop:
+    - "{{ ton_rnode_work_dir }}"
+    - "{{ ton_rnode_src_dir }}"
+    - "{{ ton_rnode_log_dir }}"
+    - "{{ ton_rnode_config_dir }}"
+    - "{{ ton_rnode_db_dir }}"
+
+- name: Get TON node sources
+  git:
+    repo: "{{ ton_rnode_github_repo }}"
+    dest: "{{ ton_rnode_src_dir }}/ton_rnode"
+    version: "{{ ton_rnode_github_commit_id }}"
+    force: true
+  register: ton_rnode_sources
+
+- name:  TON node add features
+  blockinfile: 
+    path: "{{ ton_rnode_src_dir }}/ton_rnode/Cargo.toml"
+    marker: "### ANSIBLE BLOCKINFILE 1 ####"
+    insertafter: '\[features\]'
+    block:  |
+      sha2-native = ['sha2/asm', 'ed25519-dalek/asm']
+  when: ton_rnode_sha2_native_enabled
+
+- name:  TON node add dependencies
+  blockinfile: 
+    path: "{{ ton_rnode_src_dir }}/ton_rnode/Cargo.toml"
+    marker: "### ANSIBLE BLOCKINFILE 2 ####"
+    insertafter: '\[dependencies\]'
+    block:  |
+      ed25519-dalek = '1.0'
+  when: ton_rnode_sha2_native_enabled
+
+- name: TON node add json output log support
+  lineinfile:
+    path: "{{ ton_rnode_src_dir }}/ton_rnode/Cargo.toml"
+    regexp: '^log4rs ='
+    line: "log4rs = { features = [ 'pattern_encoder', 'json_encoder' ], version = '1.1.1' }"
+
+
+- name: Get TON node tools sources
+  git:
+    repo: "{{ ton_rnode_tools_github_repo }}"
+    dest: "{{ ton_rnode_src_dir }}/ton_node_tools"
+    version: "{{ ton_rnode_tools_github_commit_id }}"
+    force: true
+  register: ton_rnode_tools_sources
+
+- name: Get tonos cli sources
+  git:
+    repo: "{{ tonos_cli_github_repo }}"
+    dest: "{{ ton_rnode_src_dir }}/tonos_cli"
+    version: "{{ tonos_cli_github_commit_id }}"
+    force: true
+  register: tonos_cli_sources
+
+- name: Clear debug directory
+  file:
+    path: "{{ ton_rnode_src_dir }}/debug"
+    state: absent
+
+- name: Build TON node
+  block:
+    - name: Update repo deps for freeton node
+      command: '{{ ansible_env.HOME }}/.cargo/bin/cargo update --manifest-path {{ ton_rnode_src_dir }}/ton_rnode/Cargo.toml'
+    - name: Build repo | freeton node
+      command: '{{ ansible_env.HOME }}/.cargo/bin/cargo build --manifest-path {{ ton_rnode_src_dir }}/ton_rnode/Cargo.toml --target-dir {{ ton_rnode_src_dir }} --release{% if ton_rnode_metrics_enabled == true %} --features metrics{% endif %}{% if ton_rnode_external_db_enabled == true %} --features external_db{% endif %}{% if ton_rnode_sha2_native_enabled == true %} --features sha2-native{% endif %}'
+  when: ton_rnode_sources.changed or ton_rnode_force_recompile
+  environment:
+    RUSTFLAGS: "{{ rust_flags }}"
+    RUST_VERSION: "{{ rust_version.stdout }}"
+    GC_TON_NODE: "{{ ton_rnode_sources.after }}"
+    ZSTD_LIB_DIR: "{% if ansible_pkg_mgr == 'dnf' %}/usr/local/lib{% elif ansible_pkg_mgr == 'apt' %}/usr/lib/x86_64-linux-gnu{% endif %}"
+    PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig"
+
+- name: Build TON node tools
+  block:
+    - name: Update repo deps | node tools
+      command: '{{ ansible_env.HOME }}/.cargo/bin/cargo update --manifest-path {{ ton_rnode_src_dir }}/ton_node_tools/Cargo.toml'
+    - name: Build repo | node tools
+      command: '{{ ansible_env.HOME }}/.cargo/bin/cargo build --manifest-path {{ ton_rnode_src_dir }}/ton_node_tools/Cargo.toml --target-dir {{ ton_rnode_src_dir }} --release'
+  when: ton_rnode_tools_sources.changed or ton_rnode_tools_force_recompile
+  environment:
+    RUSTFLAGS: "{{ rust_flags }}"
+    ZSTD_LIB_DIR: "{% if ansible_pkg_mgr == 'dnf' %}/usr/local/lib{% elif ansible_pkg_mgr == 'apt' %}/usr/lib/x86_64-linux-gnu{% endif %}"
+    PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig"
+
+- name: Build tonos cli
+  block:
+    - name: Update repo deps | tonos cli
+      command: '{{ ansible_env.HOME }}/.cargo/bin/cargo update --manifest-path {{ ton_rnode_src_dir }}/tonos_cli/Cargo.toml'
+    - name: Build repo | tonos cli
+      command: '{{ ansible_env.HOME }}/.cargo/bin/cargo build --manifest-path {{ ton_rnode_src_dir }}/tonos_cli/Cargo.toml --target-dir {{ ton_rnode_src_dir }} --release'
+  when: tonos_cli_sources.changed or tonos_cli_force_recompile
+  environment:
+    RUSTFLAGS: "{{ rust_flags }}"
+    ZSTD_LIB_DIR: "{% if ansible_pkg_mgr == 'dnf' %}/usr/local/lib{% elif ansible_pkg_mgr == 'apt' %}/usr/lib/x86_64-linux-gnu{% endif %}"
+    PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig"
+
+- name: Copy TON node tools binaries
+  copy:
+    src: "{{ ton_rnode_src_dir }}/release/{{ item }}"
+    dest: "{{ ton_rnode_tools_dir }}/{{ item }}"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rwx,g=rx,o=
+    remote_src: yes
+  loop:
+    - console
+    - dhtscan
+    - gendht
+    - keygen
+    - print
+    - zerostate
+    - adnl_resolve
+    - adnl_ping
+  when: ton_rnode_tools_sources.changed or ton_rnode_tools_force_recompile
+
+- name: Copy tonos cli binaries
+  copy:
+    src: "{{ ton_rnode_src_dir }}/release/tonos-cli"
+    dest: "{{ ton_rnode_tools_dir }}"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rwx,g=rx,o=
+    remote_src: yes
+  when: tonos_cli_sources.changed or tonos_cli_force_recompile
+
+- name: Create TON systemd service
+  template:
+    src: "ton-rnode.service.j2"
+    dest: "/etc/systemd/system/{{ ton_rnode_service_name }}.service"
+    mode: u=rw,g=r,o=r
+  notify: ton_systemd
+
+- name: Copy TON node binaries
+  copy:
+    src: "{{ ton_rnode_src_dir }}/release/ton_node"
+    dest: "{{ ton_rnode_bin_dir }}"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rwx,g=rx,o=
+    remote_src: yes
+  when: ton_rnode_sources.changed or ton_rnode_force_recompile
+  notify: ton_systemd
+
+- name: "Check if {{ ton_rnode_config_dir }} dir is empty"
   find:
-    paths: "{{ dapp_dir }}{{ node_configs_path }}"
+    paths: "{{ ton_rnode_config_dir }}"
     file_type: file
     patterns: '*'
   register: configDirNonEmpty
-  when: node_generate_console_config is defined and node_generate_console_config == 1
 
-# - name: generate_console_config
-#   community.docker.docker_container_exec:
-#     container: rnode
-#     command: /bin/bash -c "/ton-node/scripts/generate_console_config.sh"
-#     # chdir: /ton-node/
-#   register: result
-#   when: node_generate_console_config
+- name: Copy default TON rnode config
+  copy:
+    src: "{{ ton_rnode_src_dir }}/ton_rnode/configs/default_config.json"
+    dest: "{{ ton_rnode_config_dir }}"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rw,g=r,o=
+    remote_src: yes
+  notify: ton_systemd
 
-- name: Delete old configs
+- name: Copy logging config
+  template:
+    src: "log_cfg.yml.j2"
+    dest: "{{ ton_rnode_config_dir }}/log_cfg.yml"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rw,g=r,o=
+
+- name: Get TON global config 
+  get_url:
+    url: "{{ ton_node_global_config_URL_list[ton_node_config].config_URL }}"
+    dest: "{{ ton_rnode_config_dir }}"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rw,g=r,o=
+  when: configDirNonEmpty.matched <= 3
+  notify: ton_systemd
+
+- name: Config tonos-cli
+  command: "{{ item }}"
+  args:
+    chdir: "{{ ton_rnode_tools_dir }}"
+  loop:
+    - "./tonos-cli config endpoint reset"
+    - "./tonos-cli config endpoint add {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} {{ ton_node_global_config_URL_list[ton_node_config].DAPP_endpoints }}"
+    - "./tonos-cli --url {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} config"
+  when: configDirNonEmpty.matched <= 3
+
+- name: Copy tonos-cli.conf.json to configs dir
+  copy:
+    src: "{{ ton_rnode_tools_dir }}/tonos-cli.conf.json"
+    dest: "{{ ton_rnode_config_dir }}/tonos-cli.conf.json"
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rw,g=r,o=
+    remote_src: yes
+  when: configDirNonEmpty.matched <= 3
+
+- name: "Set lifetime to 600"
+  shell: "{{ item }}"
+  become: yes
+  become_user: "{{ everscale_user }}"
+  loop:
+    - 'jq ".config.lifetime=600" "{{ ton_rnode_config_dir }}/tonos-cli.conf.json" > {{ ton_rnode_config_dir }}/tonos-cli.conf_tmp.json'
+    - 'cat {{ ton_rnode_config_dir }}/tonos-cli.conf_tmp.json > {{ ton_rnode_config_dir }}/tonos-cli.conf.json'
+  when: configDirNonEmpty.matched <= 3
+
+- name: Remove tonos-cli.conf.json in tools dir
   file:
     path: "{{ item }}"
     state: absent
   loop:
-    - "{{ dapp_dir }}{{ node_configs_path }}/config.json"
-    - "{{ dapp_dir }}{{ node_configs_path }}/console.json"
-    - "{{ dapp_dir }}{{ node_configs_path }}/console_config.json"
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
-
-- name: Config tonos-cli
-  community.docker.docker_container_exec: 
-    command: "{{ item }}"
-    container: rnode
-  args:
-    chdir: "{{ node_configs_path }}"
-  loop:
-    - "/ton-node/tools/tonos-cli config endpoint reset"
-    - "/ton-node/tools/tonos-cli config endpoint add {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} {{ ton_node_global_config_URL_list[ton_node_config].DAPP_endpoints }}"
-    - "/ton-node/tools/tonos-cli --url {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} config"
-  when: configDirNonEmpty.matched == 0 or (force_genconfig is defined and force_genconfig == True)
+    - "{{ ton_rnode_config_dir }}/tonos-cli.conf_tmp.json"
+    - "{{ ton_rnode_tools_dir }}/tonos-cli.conf.json"
 
 - name: Generate keys
-  community.docker.docker_container_exec:
-    container: rnode
-    command: /bin/bash -c "/ton-node/tools/keygen > {{ ansible_hostname }}_client_keys.json"
+  shell: "./keygen > {{ ton_rnode_config_dir }}/{{ ansible_hostname }}_client_keys.json"
   args:
-    chdir: "{{ node_configs_path }}"
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+    chdir: "{{ ton_rnode_tools_dir }}"
+    #creates: "{{ ton_rnode_config_dir }}/{{ ansible_hostname }}_client_keys.json"
+  become: yes
+  become_user: "{{ everscale_user }}"
+  when: configDirNonEmpty.matched <= 3
 
-- name: Generate ton_node key config
-  community.docker.docker_container_exec:
-    container: rnode
-    command: /bin/bash -c "/ton-node/ton_node --configs {{ node_configs_path }} --ckey \"$(jq -c .public {{ node_configs_path }}/{{ ansible_hostname }}_client_keys.json)\" &"
+- name: Generate TON node key config
+  shell: "{{ ton_rnode_bin_dir }}/ton_node --configs {{ ton_rnode_config_dir }} --ckey \"$(jq -c .public {{ ton_rnode_config_dir }}/{{ ansible_hostname }}_client_keys.json)\" &"
+  #args:
+  #  creates: "{{ ton_rnode_config_dir }}/config.json"
+  # async: 30
+  # poll: 0
+  become: yes
+  become_user: "{{ everscale_user }}"
   register: ton_node_key_generated
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+  notify: ton_systemd
+  when: configDirNonEmpty.matched <= 3
 
 - name: Wait for console_config.json creation
   wait_for:
-    path: "{{ dapp_dir }}{{ node_configs_path }}/console_config.json"
+    path: "{{ ton_rnode_config_dir }}/console_config.json"
   when: ton_node_key_generated.changed
 
-- name: Restart a container with ton_node
-  community.docker.docker_container:
-    name: rnode
-    state: started
-    restart: yes
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+# - name: Kill nohup ton_node processes
+#   shell: "kill -9 `jobs -l | awk '{print $2}'`"
+#   become: yes
+#   become_user: "{{ everscale_user }}"
+#   when: ton_node_key_generated.changed
+#   ignore_errors: true
 
 - name: Configure console and node ports
   shell: "{{ item }}"
+  become: yes
+  become_user: "{{ everscale_user }}"
   loop:
-    - "jq '.adnl_node.ip_address = \"0.0.0.0:{{ node_adnl_port }}\"' {{ dapp_dir }}{{ node_configs_path }}/config.json > {{ dapp_dir }}{{ node_configs_path }}/config_tmp.json"
-    - "jq '.control_server.address = \"127.0.0.1:{{ node_console_port }}\"' {{ dapp_dir }}{{ node_configs_path }}/config_tmp.json > {{ dapp_dir }}{{ node_configs_path }}/config.json"
-    - "jq '.server_address = \"127.0.0.1:{{ node_console_port }}\"' {{ dapp_dir }}{{ node_configs_path }}/console_config.json > {{ dapp_dir }}{{ node_configs_path }}/console_config_tmp.json"
-    - 'cat {{ dapp_dir }}{{ node_configs_path }}/console_config_tmp.json > {{ dapp_dir }}{{ node_configs_path }}/console_config.json'
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+    - "jq '.adnl_node.ip_address = \"0.0.0.0:{{ ton_rnode_adnl_port }}\"' {{ ton_rnode_config_dir }}/config.json > {{ ton_rnode_config_dir }}/config_tmp.json"
+    - "jq '.control_server.address = \"127.0.0.1:{{ ton_rnode_console_port }}\"' {{ ton_rnode_config_dir }}/config_tmp.json > {{ ton_rnode_config_dir }}/config.json"
+    - "jq '.server_address = \"127.0.0.1:{{ ton_rnode_console_port }}\"' {{ ton_rnode_config_dir }}/console_config.json > {{ ton_rnode_config_dir }}/console_config_tmp.json"
+    - 'cat {{ ton_rnode_config_dir }}/console_config_tmp.json > {{ ton_rnode_config_dir }}/console_config.json'
+  when: configDirNonEmpty.matched <= 3
+
+- name: Copy console_template.json
+  copy:
+    src: console_template.json
+    dest: "{{ ton_rnode_config_dir }}/console_template.json"
+    force: no
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rw,g=r,o=
+  when: configDirNonEmpty.matched <= 3
 
 - name: Generate console.json config
   shell: "{{ item }}"
+  #args:
+  #  creates: "{{ ton_rnode_config_dir }}/console.json"
+  become: yes
+  become_user: "{{ everscale_user }}"
   loop:
-    - "jq \".config = $(cat {{ dapp_dir }}{{ node_configs_path }}/console_config.json)\" {{ dapp_dir }}{{ node_configs_path }}/console_template.json > {{ dapp_dir }}{{ node_configs_path }}/console_tmp.json"
-    - "jq \".config.client_key = $(jq .private {{ dapp_dir }}{{ node_configs_path }}/{{ ansible_hostname }}_client_keys.json)\" {{ dapp_dir }}{{ node_configs_path }}/console_tmp.json > {{ dapp_dir }}{{ node_configs_path }}/console.json"
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
+    - "jq \".config = $(cat {{ ton_rnode_config_dir }}/console_config.json)\" {{ ton_rnode_config_dir }}/console_template.json > {{ ton_rnode_config_dir }}/console_tmp.json"
+    - "jq \".config.client_key = $(jq .private {{ ton_rnode_config_dir }}/{{ ansible_hostname }}_client_keys.json)\" {{ ton_rnode_config_dir }}/console_tmp.json > {{ ton_rnode_config_dir }}/console.json"
+  when: configDirNonEmpty.matched <= 3
 
 - name: Delete temp file
   file:
-    path: "{{ dapp_dir }}{{ node_configs_path }}/{{ item }}"
+    path: "{{ ton_rnode_config_dir }}/{{ item }}"
     state: absent
   loop:
     - console_config_tmp.json
     - console_tmp.json
     - config_tmp.json
     - console_template.json
+
+- name: Set correct keys mode
+  file:
+    path: "{{ item }}"
+    state: file
+    owner: "{{ everscale_user }}"
+    group: "{{ everscale_group }}"
+    mode: u=rw,g=r,o=
+  loop:
+    - "{{ ton_rnode_config_dir }}/{{ ansible_hostname }}_client_keys.json"
+    - "{{ ton_rnode_config_dir }}/config.json"
+    - "{{ ton_rnode_config_dir }}/console.json"
+  when: configDirNonEmpty.matched <= 3
 
 - name: Firewall block
   block:
@@ -184,57 +381,8 @@
         state: enabled
         zone: public
       loop:
-        - "{{ node_adnl_port }}/udp"
-        - "{{ node_console_port }}/tcp"
+        - "{{ ton_rnode_adnl_port }}/udp"
+        - "{{ ton_rnode_console_port }}/tcp"
       when: "'active (running)' in firewalld_node_state.stdout"
   when: ansible_pkg_mgr == "dnf"
-
-
-- name: Restart a container with ton_node after config regen
-  community.docker.docker_container:
-    name: rnode
-    state: started
-    restart: yes
-  when: configDirNonEmpty.matched == 0 or ( node_generate_console_config is defined and node_generate_console_config == 1 )
-
-# - name: restart service
-#   shell: /usr/local/bin/docker-compose stop
-#   args:
-#     chdir: "{{ dapp_dir }}/ton-node"
-
-# - name: restart service
-#   shell: /usr/local/bin/docker-compose up -d
-#   args:
-#     chdir: "{{ dapp_dir }}/ton-node"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  

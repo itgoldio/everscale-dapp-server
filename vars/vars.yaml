@@ -3,48 +3,82 @@ dapp_dir: "/opt/dapp"
 # chrony
 ntp_server: "pool.ntp.org"
 
-docker_version: "20.10.12"
-
-ton_node_config: "main"
-
-ton_node_global_config_URL_list:
-  main:
-    config_URL: "https://raw.githubusercontent.com/tonlabs/main.ton.dev/master/configs/ton-global.config.json"
-    DAPP_address: "https://main.ton.dev"
-    DAPP_endpoints: "https://eri01.main.everos.dev,https://gra01.main.everos.dev,https://gra02.main.everos.dev,https://lim01.main.everos.dev,https://rbx01.main.everos.dev,https://main2.ton.dev,https://main3.ton.dev,https://main4.ton.dev"
-  net:
-    config_URL: "https://raw.githubusercontent.com/tonlabs/net.ton.dev/master/configs/ton-global.config.json"
-    DAPP_address: "https://net.ton.dev"
-    DAPP_endpoints: "https://net1.ton.dev,https://net5.ton.dev"
-  fld:
-    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/fld.ton.dev/main/configs/fld.ton.dev/ton-global.config.json"
-    DAPP_address: "https://gql.custler.net"
-    DAPP_endpoints: "https://gql.custler.net"
-  rfld:
-    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/custler.uninode/main/configs/rfld.ton.dev/ton-global.config.json"
-    DAPP_address: "https://rfld.ton.dev"
-    DAPP_endpoints: "https://rfld-dapp01.ds1.itgold.io"
-
-# docker
-docker_network_name: "dapp_network"
-
-everscale_network: "main.ton.dev"
+# System user/group
+everscale_group: "xnode"
+everscale_user: "xnode"
 
 # single hostname var for all docker-compose env's templates
 # for example:
-# hostname: "dapp.main.ton.dev"
-hostname: "{{ inventory_hostname }}"
+# hostname: "dapp.host.dom"
+# hostname: "{{ inventory_hostname }}"
+hostname: "dapp.company.tld"
 
-# arangodb
+# Kernel parameters
+sysctl_set: true  # or 'false'
+
+# these parameters for example! Specify kernel options for your system
+sysctl_conf:
+  ton_node:
+    - { name: "net.ipv6.conf.all.disable_ipv6", value: "1" }
+    - { name: "net.ipv6.conf.default.disable_ipv6", value: "1" }
+    - { name: "net.ipv6.conf.lo.disable_ipv6", value: "1" }
+    - { name: "net.core.rmem_max", value: "134217728" }
+    - { name: "net.core.wmem_max", value: "134217728" }
+    - { name: "net.core.rmem_default", value: "134217728" }
+    - { name: "net.core.wmem_default", value: "134217728" }
+    - { name: "net.ipv4.tcp_mem", value: "1048576 16777216 67108864" }
+    - { name: "net.ipv4.tcp_rmem", value: "1048576 16777216 67108864" }
+    - { name: "net.ipv4.tcp_wmem", value: "1048576 16777216 67108864" }
+    - { name: "net.ipv4.udp_mem", value: "1048576 16777216 67108864" }
+    - { name: "net.ipv4.udp_rmem_min", value: "1048576" }
+    - { name: "net.ipv4.udp_wmem_min", value: "1048576" }
+    - { name: "net.core.optmem_max", value: "134217728" }
+    - { name: "net.core.somaxconn", value: "65535" }
+    - { name: "net.core.netdev_max_backlog", value: "250000" }
+    - { name: "net.ipv4.conf.all.rp_filter", value: "1" }
+    - { name: "net.ipv4.conf.all.arp_filter", value: "1" }
+    - { name: "net.ipv4.conf.all.arp_ignore", value: "1" }
+    - { name: "net.ipv4.conf.all.arp_announce", value: "2" }
+    - { name: "vm.overcommit_memory", value: "2" }
+    - { name: "vm.overcommit_ratio", value: "100" }
+    - { name: "vm.swappiness", value: "10" }
+    - { name: "vm.vfs_cache_pressure", value: "200" }
+
+# Max open file limit
+set_limits: true  # or 'false'
+soft_nofile: 65536
+hard_nofile: 200000
+soft_nproc: 65000
+hard_nproc: 200000
+memlock: "unlimited"
+
+
+# Docker
+docker_version: "20.10.17"
+docker_network_name: "dapp_network"
+
+## Kafka
+#
+kafka_host: "kafka"
+kafka_mem_limit: "32G"
+kafka_port_internal: 9092
+kafka_port_external: "{{ kafka_port_internal }}"
+kafka_net: "{{ docker_network_name }}"
+
+# ArangoDB (please make sure you've changed your "arangodb_password")
+#
 arangodb_port: 8529
-arangodb_mem_limit: 5G
+arangodb_mem_limit: 16G
 arangodb_net: "{{ docker_network_name }}"
 
 arangodb_host: "arangodb"
 arangoni_host: "arangoni"
 arangodb_user: "root"
-arangodb_password: "Sijkmde26cBHjddxs"
+arangodb_password: "Ch@nge_me"
 arangodb_database_name: "blockchain"
+
+# Possivble values are: "main.ever.live", "rfld.ever.live", "fld.ever.live" and "net.ever.live"
+everscale_network: "rfld.ever.live"
 
 # Set this values as 30% of RAM in bytes
 arangodb_rocksdb_block_cache_size: 10307921510
@@ -54,9 +88,9 @@ arangodb_query_memory_limit: 512000000
 # This value set as 20% of RAM in bytes
 arangodb_cache_size: 6871947674
 
-# var for letsencrypt 
+# var for letsencrypt
 le_hostname: "{{ hostname }}"
-le_email: "kewlhaxor@main.ton.dev"
+le_email: "kewlhaxor@ever.live"
 
 # proxy
 proxy_net: "{{ docker_network_name }}"
@@ -72,36 +106,102 @@ statsd_tcp_port: 9102
 statsd_domain: "statsd:"
 statsd_net: "{{ docker_network_name }}"
 
-# node
-node_repo: "https://github.com/tonlabs/ton-labs-node"
-node_commit_id: "3037a6cf279aac5826035c66d8b822fbdecf3e1a"
-node_generate_console_config: 1
-node_net: "{{ docker_network_name }}"
-node_adnl_port: 30303
-node_console_port: 4925
-node_validator_name: "dapp-validator"
-node_network_type: "{{ everscale_network }}"
-node_configs_path: "/ton-node/configs"
-node_statsd_domain: "{{ statsd_domain }}"
-node_statsd_port: "{{ statsd_udp_port }}"
-node_stake:
-node_msig_enable: "no"
-node_sdk_url:
-node_sdk_endpoint_url_list:
-#node_mem_limit: "128g"
-node_mem_limit: "20g"
-node_cmd_1: "normal"
-node_cmd_2: "novalidate"
-node_extra_args:
-node_enable_kafka: 1
-node_rust_net_enable: "yes"
-node_elector_type: "fift"
-node_depool_enable: "no"
 
-# kafka
-kafka_host: "kafka"
-kafka_mem_limit: "32G"
-kafka_port_internal: 9092
-kafka_port_external: "{{ kafka_port_internal }}"
-kafka_net: "{{ docker_network_name }}"
+# TON node configuration
+#
+# Choose net: possible values are main, net, fld and rfld (all networks except 'main' are testnets)
+ton_node_config: "rfld"
 
+ton_node_global_config_URL_list:
+  main:
+    config_URL: "https://raw.githubusercontent.com/tonlabs/main.ton.dev/master/configs/ton-global.config.json"
+    DAPP_address: "https://ever.live"
+    DAPP_endpoints: "https://eri01.main.everos.dev,https://gra01.main.everos.dev,https://gra02.main.everos.dev,https://lim01.main.everos.dev,https://rbx01.main.everos.dev,https://main2.ton.dev,https://main3.ton.dev,https://main4.ton.dev"
+  net:
+    config_URL: "https://raw.githubusercontent.com/tonlabs/net.ton.dev/master/configs/ton-global.config.json"
+    DAPP_address: "https://net.ever.live/"
+    DAPP_endpoints: "https://net1.ton.dev,https://net5.ton.dev"
+  fld:
+    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/fld.ton.dev/main/configs/fld.ton.dev/ton-global.config.json"
+    DAPP_address: "https://gql.custler.net"
+    DAPP_endpoints: "https://gql.custler.net"
+  rfld:
+    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/custler.uninode/main/configs/rfld.ton.dev/ton-global.config.json"
+    DAPP_address: "https://rfld.ever.live/"
+    DAPP_endpoints: "https://rfld-dapp.itgold.io"
+
+# systemd service name
+ton_rnode_service_name: "ton-rnode"
+
+# Set TON node service enabled for autostart after system restart: yes|no
+ton_rnode_service_autostart: "yes"
+
+# TON node service state after ansible script deploying: restarted|started|stopped
+ton_rnode_service_state: "restarted"
+
+# TON node directories:
+# sources
+ton_rnode_src_dir: "/usr/local/src/ton"
+
+# TON node work directory (topdir for configs/logs and node database)
+ton_rnode_work_dir: "/var/ton-work"
+
+# TON node log directory
+ton_rnode_log_dir: "{{ ton_rnode_work_dir }}/logs"
+
+# TON node config directory
+ton_rnode_config_dir: "{{ ton_rnode_work_dir }}/configs"
+
+# TON node database directory
+ton_rnode_db_dir: "{{ ton_rnode_work_dir }}/rnode_db"
+
+# TON node binary files location
+ton_rnode_bin_dir: "/usr/local/bin"
+
+# TON node tools binary files location
+ton_rnode_tools_dir: "/usr/local/bin"
+
+# Get TON node commit id: https://github.com/tonlabs/ton-labs-node/commits
+ton_rnode_github_repo: "https://github.com/tonlabs/ton-labs-node.git"
+ton_rnode_github_commit_id: "master"
+ton_rnode_sha2_native_enabled: true
+
+# Recompile TON node binary without sources changes: false|true
+ton_rnode_force_recompile: false
+
+# Statsd suport
+ton_rnode_metrics_enabled: false
+
+# MUST be 'true' if you deployment dapp server (i.e. always at this playbook).
+ton_rnode_external_db_enabled: true
+
+# TON node adnl port (udp)
+ton_rnode_adnl_port: "30303"
+
+# TON node console management port (tcp)
+ton_rnode_console_port: "4925"
+
+# Get freeton node tools commit id: https://github.com/tonlabs/ton-labs-node-tools/commits"
+ton_rnode_tools_github_repo: "https://github.com/tonlabs/ton-labs-node-tools.git"
+ton_rnode_tools_github_commit_id: "master"
+
+# Recompile TON node tools binary without sources changes: false|true
+ton_rnode_tools_force_recompile: true
+
+# Get tonos cli commit id: https://github.com/tonlabs/tonos-cli/commits"
+tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
+tonos_cli_github_commit_id: "master"
+
+# Recompile tonos-cli binary without sources changes: false|true
+tonos_cli_force_recompile: true
+
+# zstd parameters
+zstd_version: 1.5.1
+
+# Rust parameters
+rustup_mirror : https://static.rust-lang.org/rustup/dist
+rustup_platform : x86_64-unknown-linux-gnu
+# Default rust version: stable|beta|nightly|<major.minor>|<major.minor.patch>
+rustup_default_toolchain: "1.61.0"
+# Rust flags compile environment
+rust_flags: "-C target-cpu=native"

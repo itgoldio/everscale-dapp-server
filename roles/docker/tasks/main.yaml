@@ -1,5 +1,5 @@
 ---
-- name: Include os specific tasks
+- name: Include OS specific tasks
   include_tasks: "{{ ansible_pkg_mgr }}.yaml"
 
 - name: Upgrade pip

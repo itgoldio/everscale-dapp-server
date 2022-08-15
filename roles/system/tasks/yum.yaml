@@ -14,21 +14,21 @@
   vars:
     ansible_python_interpreter: python2
 
-- name: add docker repository
+- name: Add docker repository
   shell: >
     yum-config-manager
     --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
   args:
     creates: /etc/yum.repos.d/docker-ce.repo
 
-- name: install docker and it's dependencies
+- name: Install docker and dependencies
   yum:
     name:
       - docker-ce
     state: present
     update_cache: yes
 
-- name: reload docker service
+- name: Reload docker service
   service:
     name: docker
     enabled: yes

@@ -1,0 +1,9 @@
+---
+
+- name: Enable and start ton systemd service
+  systemd:
+    daemon_reload: true
+    name: "{{ ton_rnode_service_name }}"
+    enabled: "{{ ton_rnode_service_autostart }}"
+    state: "{{ ton_rnode_service_state }}"
+  listen: ton_systemd

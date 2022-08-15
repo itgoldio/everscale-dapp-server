@@ -1,7 +1,7 @@
 version: '2.3'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.3
+    image: confluentinc/cp-zookeeper:5.5.10
     container_name: zookeeper
     restart: unless-stopped
     environment:
@@ -18,7 +18,7 @@ services:
       start_period: 40s
 
   kafka:
-    image: confluentinc/cp-kafka:5.4.3
+    image: confluentinc/cp-kafka:5.5.10
     container_name: kafka
     restart: unless-stopped
     depends_on:
@@ -48,7 +48,7 @@ services:
       - data:/var/lib/kafka/data
 
   connect:
-    image: confluentinc/cp-kafka-connect:5.4.3
+    image: confluentinc/cp-kafka-connect:5.5.10
     container_name: connect
     restart: unless-stopped
     depends_on:
@@ -96,7 +96,7 @@ services:
     mem_limit: {{ kafka_mem_limit }}
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.3
+    image: confluentinc/cp-schema-registry:5.5.10
     hostname: schema-registry
     container_name: schema-registry
     restart: unless-stopped
