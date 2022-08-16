@@ -1,0 +1,15 @@
+- name: Install system packages
+  dnf:
+    name:
+      - "@Development tools"
+      - openssl-devel
+      - clang
+      - cmake
+    state: latest
+
+- name: Install system packages
+  dnf:
+    name:
+      - libzstd-devel
+    state: absent
+

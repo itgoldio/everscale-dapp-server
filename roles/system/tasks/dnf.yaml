@@ -1,5 +1,5 @@
 ---
-- name: install prerequisites for Docker repository
+- name: Install prerequisites for Docker repository
   dnf:
     name:
       - jq
@@ -15,7 +15,7 @@
     state: latest
   when: ansible_facts['distribution'] == "OracleLinux"
 
-- name: add docker repo
+- name: Add docker repo
   yum_repository:
     name: docker-ce-stable
     description: Docker CE Stable - $basearch
@@ -25,7 +25,7 @@
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
 
-- name: install docker and it's dependencies
+- name: Install docker and dependencies
   dnf:
     name:
       - "docker-ce-{{ docker_version }}"
@@ -36,7 +36,7 @@
   delay: 10
   until: install_state.rc == 0
   
-- name: reload docker service
+- name: Reload docker service
   service:
     name: docker
     enabled: yes
@@ -72,6 +72,7 @@
         src: chrony.conf.j2
         dest: /etc/chrony.conf
   when: ntp_enabled is defined and ntp_enabled|bool
+  notify: restart chronyd
 
 - name: Disable SELinux at next reboot
   selinux:
