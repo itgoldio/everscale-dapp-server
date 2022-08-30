@@ -15,8 +15,9 @@ services:
       - Q_REQUESTS_TOPIC
       - Q_QUERY_MAX_RUNTIME
       - Q_SLOW_QUERIES
+      - Q_CONFIG
     volumes:
-      - ./config.json:/home/node/dist/server/config.json
+      - ./q-config.json:/home/node/dist/server/q-config.json
     networks:
       - {{ q_server_net }}
     expose:

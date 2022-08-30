@@ -99,7 +99,6 @@
     regexp: '^log4rs ='
     line: "log4rs = { features = [ 'pattern_encoder', 'json_encoder' ], version = '1.1.1' }"
 
-
 - name: Get TON node tools sources
   git:
     repo: "{{ ton_rnode_tools_github_repo }}"

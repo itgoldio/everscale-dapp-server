@@ -43,7 +43,7 @@
     src: "{{ item }}"
     dest: "{{ dapp_dir }}/q-server/build/{{ item | basename | regex_replace('.j2$', '') }}"
   with_fileglob:
-    - ../templates/config.json.j2
+    - ../templates/q-config.json.j2
 
 - name: Restart q-server service
   shell: /usr/local/bin/docker-compose up -d
