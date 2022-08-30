@@ -11,7 +11,7 @@ everscale_user: "xnode"
 # for example:
 # hostname: "dapp.host.dom"
 # hostname: "{{ inventory_hostname }}"
-hostname: "dapp.company.tld"
+hostname: "dapp.company2.tld"
 
 # Kernel parameters
 sysctl_set: true  # or 'false'
@@ -74,11 +74,11 @@ arangodb_net: "{{ docker_network_name }}"
 arangodb_host: "arangodb"
 arangoni_host: "arangoni"
 arangodb_user: "root"
-arangodb_password: "Ch@nge_me"
+arangodb_password: "7YUDn4hjKKIdnn478c"
 arangodb_database_name: "blockchain"
 
 # Possivble values are: "main.ever.live", "rfld.ever.live", "fld.ever.live" and "net.ever.live"
-everscale_network: "rfld.ever.live"
+everscale_network: "main.ever.live"
 
 # Set this values as 30% of RAM in bytes
 arangodb_rocksdb_block_cache_size: 10307921510
@@ -110,7 +110,7 @@ statsd_net: "{{ docker_network_name }}"
 # TON node configuration
 #
 # Choose net: possible values are main, net, fld and rfld (all networks except 'main' are testnets)
-ton_node_config: "rfld"
+ton_node_config: "main"
 
 ton_node_global_config_URL_list:
   main:
@@ -167,10 +167,10 @@ ton_rnode_github_commit_id: "master"
 ton_rnode_sha2_native_enabled: true
 
 # Recompile TON node binary without sources changes: false|true
-ton_rnode_force_recompile: false
+ton_rnode_force_recompile: true
 
 # Statsd suport
-ton_rnode_metrics_enabled: false
+ton_rnode_metrics_enabled: true
 
 # MUST be 'true' if you deployment dapp server (i.e. always at this playbook).
 ton_rnode_external_db_enabled: true
@@ -193,7 +193,7 @@ tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
 tonos_cli_github_commit_id: "master"
 
 # Recompile tonos-cli binary without sources changes: false|true
-tonos_cli_force_recompile: true
+tonos_cli_force_recompile: false
 
 # zstd parameters
 zstd_version: 1.5.1
@@ -202,6 +202,6 @@ zstd_version: 1.5.1
 rustup_mirror : https://static.rust-lang.org/rustup/dist
 rustup_platform : x86_64-unknown-linux-gnu
 # Default rust version: stable|beta|nightly|<major.minor>|<major.minor.patch>
-rustup_default_toolchain: "1.61.0"
+rustup_default_toolchain: "1.63.0"
 # Rust flags compile environment
 rust_flags: "-C target-cpu=native"
