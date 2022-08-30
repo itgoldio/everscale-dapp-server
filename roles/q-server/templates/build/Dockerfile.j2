@@ -44,7 +44,6 @@ COPY ton-q-server /home/node/
 
 # my start
 RUN mkdir -p /home/node/dist/server/
-#COPY q-config.json /home/node/dist/server/q-config.json
 USER root
 RUN chown -R node /home/node/
 # my end
