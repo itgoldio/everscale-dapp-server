@@ -48,8 +48,9 @@ USER root
 RUN chown -R node /home/node/
 # my end
 
-RUN npm install
-RUN npm install --production
+RUN npm ci
 RUN npm run tsc
+RUN npm ci --production
+
 EXPOSE 4000
 ENTRYPOINT ["node", "index.js"]

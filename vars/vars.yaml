@@ -11,7 +11,7 @@ everscale_user: "xnode"
 # for example:
 # hostname: "dapp.host.dom"
 # hostname: "{{ inventory_hostname }}"
-hostname: "dapp.company2.tld"
+hostname: "dapp.company.tld"
 
 # Kernel parameters
 sysctl_set: true  # or 'false'
@@ -54,7 +54,7 @@ memlock: "unlimited"
 
 
 # Docker
-docker_version: "20.10.17"
+docker_version: "20.10.20"
 docker_network_name: "dapp_network"
 
 ## Kafka
@@ -68,17 +68,17 @@ kafka_net: "{{ docker_network_name }}"
 # ArangoDB (please make sure you've changed your "arangodb_password")
 #
 arangodb_port: 8529
-arangodb_mem_limit: 16G
+arangodb_mem_limit: 30G
 arangodb_net: "{{ docker_network_name }}"
-
+arangodb_database_name: "blockchain"
 arangodb_host: "arangodb"
 arangoni_host: "arangoni"
 arangodb_user: "root"
-arangodb_password: "7YUDn4hjKKIdnn478c"
-arangodb_database_name: "blockchain"
+arangodb_password: "CH@NGE_P@ssw0rD_Ple@$e"
+
 
 # Possivble values are: "main.ever.live", "rfld.ever.live", "fld.ever.live" and "net.ever.live"
-everscale_network: "main.ever.live"
+everscale_network: "rfld.ever.live"
 
 # Set this values as 30% of RAM in bytes
 arangodb_rocksdb_block_cache_size: 10307921510
@@ -167,10 +167,10 @@ ton_rnode_github_commit_id: "master"
 ton_rnode_sha2_native_enabled: true
 
 # Recompile TON node binary without sources changes: false|true
-ton_rnode_force_recompile: true
+ton_rnode_force_recompile: false
 
 # Statsd suport
-ton_rnode_metrics_enabled: true
+ton_rnode_metrics_enabled: false
 
 # MUST be 'true' if you deployment dapp server (i.e. always at this playbook).
 ton_rnode_external_db_enabled: true
@@ -186,7 +186,7 @@ ton_rnode_tools_github_repo: "https://github.com/tonlabs/ton-labs-node-tools.git
 ton_rnode_tools_github_commit_id: "master"
 
 # Recompile TON node tools binary without sources changes: false|true
-ton_rnode_tools_force_recompile: true
+ton_rnode_tools_force_recompile: false
 
 # Get tonos cli commit id: https://github.com/tonlabs/tonos-cli/commits"
 tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
