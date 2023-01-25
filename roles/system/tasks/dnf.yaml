@@ -61,16 +61,18 @@
       - rsync
     state: latest
 
-- block:
-    - name: Install chrony package
-      dnf:
-        name: chrony
-        state: latest
 
-    - name: Copy the chrony.conf file
-      template:
-        src: chrony.conf.j2
-        dest: /etc/chrony.conf
+- name: Install chrony package
+  dnf:
+    name: chrony
+    state: latest
+  when: ntp_enabled is defined and ntp_enabled|bool
+
+
+- name: Copy the chrony.conf file
+  template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
   when: ntp_enabled is defined and ntp_enabled|bool
   notify: restart chronyd
 

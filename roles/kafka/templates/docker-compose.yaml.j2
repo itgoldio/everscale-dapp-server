@@ -1,7 +1,7 @@
 version: '2.3'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.5.10
+    image: confluentinc/cp-zookeeper:5.5.12
     container_name: zookeeper
     restart: unless-stopped
     environment:
@@ -18,7 +18,7 @@ services:
       start_period: 40s
 
   kafka:
-    image: confluentinc/cp-kafka:5.5.10
+    image: confluentinc/cp-kafka:5.5.12
     container_name: kafka
     restart: unless-stopped
     depends_on:
@@ -48,7 +48,7 @@ services:
       - data:/var/lib/kafka/data
 
   connect:
-    image: confluentinc/cp-kafka-connect:5.5.10
+    image: confluentinc/cp-kafka-connect:5.5.12
     container_name: connect
     restart: unless-stopped
     depends_on:
@@ -73,7 +73,7 @@ services:
       CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
       CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
       CONNECT_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      # Assumes image is based on confluentinc/kafka-connect-datagen:latest which is pulling 5.1.1 Connect image
+      # Assumes image is based on confluentinc/kafka-connect-datagen:5.5.12 which is pulling 5.1.1 Connect image
       CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-5.2.1.jar
       CONNECT_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
       CONNECT_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
@@ -96,7 +96,7 @@ services:
     mem_limit: {{ kafka_mem_limit }}
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.5.10
+    image: confluentinc/cp-schema-registry:5.5.12
     hostname: schema-registry
     container_name: schema-registry
     restart: unless-stopped

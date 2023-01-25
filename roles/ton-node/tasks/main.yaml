@@ -247,7 +247,7 @@
   loop:
     - "./tonos-cli config endpoint reset"
     - "./tonos-cli config endpoint add {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} {{ ton_node_global_config_URL_list[ton_node_config].DAPP_endpoints }}"
-    - "./tonos-cli --url {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }} config"
+    - "./tonos-cli config --url {{ ton_node_global_config_URL_list[ton_node_config].DAPP_address }}"
   when: configDirNonEmpty.matched <= 3
 
 - name: Copy tonos-cli.conf.json to configs dir

@@ -42,11 +42,11 @@ WORKDIR /home/node
 USER node
 COPY ton-q-server /home/node/
 
-# my start
+#
 RUN mkdir -p /home/node/dist/server/
 USER root
 RUN chown -R node /home/node/
-# my end
+#
 
 RUN npm install
 RUN npm install --production
