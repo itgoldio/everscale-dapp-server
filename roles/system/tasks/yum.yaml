@@ -1,5 +1,5 @@
 ---
-- name: installing yum-utils and stuff
+- name: Installing yum-utils and stuff
   yum:
     name:
       - yum-utils
@@ -14,28 +14,4 @@
   vars:
     ansible_python_interpreter: python2
 
-- name: Add docker repository
-  shell: >
-    yum-config-manager
-    --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
-  args:
-    creates: /etc/yum.repos.d/docker-ce.repo
-
-- name: Install docker and dependencies
-  yum:
-    name:
-      - docker-ce
-    state: present
-    update_cache: yes
-
-- name: Reload docker service
-  service:
-    name: docker
-    enabled: yes
-    state: restarted
-
-- name: Install docker compose 
-  pip: 
-    name: docker-compose 
-    state: present
 

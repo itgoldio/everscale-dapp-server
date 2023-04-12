@@ -18,6 +18,6 @@
     - kafka
     - q-server
     - statsd
-    - ton-node
+    - ever-node
   tags: [ "all" ]
 

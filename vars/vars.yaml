@@ -7,6 +7,17 @@ ntp_server: "pool.ntp.org"
 everscale_group: "xnode"
 everscale_user: "xnode"
 
+# zstd parameters
+zstd_version: 1.5.1
+
+# Rust parameters
+## Rust versior
+rustup_default_toolchain: "1.68.2"
+rustup_mirror : https://static.rust-lang.org/rustup/dist
+rustup_platform : x86_64-unknown-linux-gnu
+## Rust flags compile environment
+rust_flags: "-C target-cpu=native"
+
 # single hostname var for all docker-compose env's templates
 # for example:
 # hostname: "dapp.host.dom"
@@ -16,9 +27,10 @@ hostname: "dapp.company.tld"
 # Kernel parameters
 sysctl_set: true  # or 'false'
 
-# these parameters for example! Specify kernel options for your system
+# Use these parameters as example! Specify kernel options for your system. 
+## Specified default options was optimized for dApp.
 sysctl_conf:
-  ton_node:
+  ever_node:
     - { name: "net.ipv6.conf.all.disable_ipv6", value: "1" }
     - { name: "net.ipv6.conf.default.disable_ipv6", value: "1" }
     - { name: "net.ipv6.conf.lo.disable_ipv6", value: "1" }
@@ -54,8 +66,42 @@ memlock: "unlimited"
 
 
 # Docker
-docker_version: "20.10.20"
+#
+docker_version: "20.10.24"
 docker_network_name: "dapp_network"
+
+# Docker logging options
+# READ https://docs.docker.com/config/containers/logging/configure/
+# WARNING! Containers must be recreated to submit daemon.json changes
+docker_log_driver: json-file
+docker_log_opts:
+  max-size: "10m"
+  max-file: "5"
+  mode: "non-blocking"
+  max-buffer-size: "10m"
+
+# docker_log_driver: "gelf"
+# docker_log_opts:
+#   "gelf-address": "udp://1.2.3.4:12201"
+#   "cache-disabled": "false"
+#   "cache-max-size": "10m"
+#   "cache-max-file": "5"
+#   "mode": "non-blocking"
+#   "max-buffer-size": "10m"
+
+containerd_yum_version: "1.6.15"
+containerd_deb_version: "1.6.15-1"
+
+docker_debuntu_full_package_version: "5:{{ docker_version }}~3-0~{{ ansible_distribution | lower }}-{{ ansible_distribution_release }}"
+docker_repo_url: https://download.docker.com/linux
+docker_apt_gpg_key: "{{ docker_repo_url }}/{{ ansible_distribution | lower }}/gpg"
+docker_apt_ignore_key_error: true
+docker_apt_release_channel: stable
+docker_apt_arch: amd64
+docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} {{ docker_apt_release_channel }}"
+
+
+
 
 ## Kafka
 #
@@ -77,9 +123,6 @@ arangodb_user: "root"
 arangodb_password: "CH@NGE-ME!"
 arangodb_database_name: "blockchain"
 
-# Possivble values are: "main.ever.live", "rfld.ever.live", "fld.ever.live" and "net.ever.live"
-everscale_network: "main.ever.live"
-
 # Set this values as 30% of RAM in bytes
 arangodb_rocksdb_block_cache_size: 10307921510
 arangodb_rocksdb_total_write_buffer_size: 10307921510
@@ -93,9 +136,11 @@ le_hostname: "{{ hostname }}"
 le_email: "kewlhaxor@ever.live"
 
 # proxy
+#
 proxy_net: "{{ docker_network_name }}"
 
-# q-server
+# q-server (https://github.com/tonlabs/ton-q-server)
+#
 q_server_port: 4000
 q_server_mem_limit: "5G"
 q_server_net: "{{ docker_network_name }}"
@@ -107,12 +152,12 @@ statsd_domain: "statsd:"
 statsd_net: "{{ docker_network_name }}"
 
 
-# TON node configuration
+# EVER node configuration
 #
 # Choose net: possible values are main, net, fld and rfld (all networks except 'main' are testnets)
-ton_node_config: "main"
+ever_node_config: "main"
 
-ton_node_global_config_URL_list:
+ever_node_global_config_URL_list:
   main:
     config_URL: "https://raw.githubusercontent.com/tonlabs/main.ton.dev/master/configs/ton-global.config.json"
     DAPP_address: "https://ever.live"
@@ -131,62 +176,63 @@ ton_node_global_config_URL_list:
     DAPP_endpoints: "https://rfld-dapp.itgold.io"
 
 # systemd service name
-ton_rnode_service_name: "ton-rnode"
+ever_node_service_name: "ever-node"
 
-# Set TON node service enabled for autostart after system restart: yes|no
-ton_rnode_service_autostart: "yes"
+# Set ever node service enabled for autostart after system restart: yes|no
+ever_node_service_autostart: "yes"
 
-# TON node service state after ansible script deploying: restarted|started|stopped
-ton_rnode_service_state: "restarted"
+# ever node service state after ansible script deploying: restarted|started|stopped
+ever_node_service_state: "restarted"
 
-# TON node directories:
+# ever node directories:
 # sources
-ton_rnode_src_dir: "/usr/local/src/ton"
+ever_node_src_dir: "/usr/local/src/everscale"
 
-# TON node work directory (topdir for configs/logs and node database)
-ton_rnode_work_dir: "/var/ton-work"
+# ever node work directory (topdir for configs/logs and node database)
+ever_node_work_dir: "/var/ton-work"
 
-# TON node log directory
-ton_rnode_log_dir: "{{ ton_rnode_work_dir }}/logs"
+# ever node log directory
+ever_node_log_dir: "{{ ever_node_work_dir }}/logs"
 
-# TON node config directory
-ton_rnode_config_dir: "{{ ton_rnode_work_dir }}/configs"
+# ever node config directory
+ever_node_config_dir: "{{ ever_node_work_dir }}/configs"
 
-# TON node database directory
-ton_rnode_db_dir: "{{ ton_rnode_work_dir }}/rnode_db"
+# ever node database directory
+ever_node_db_dir: "{{ ever_node_work_dir }}/rnode_db"
 
-# TON node binary files location
-ton_rnode_bin_dir: "/usr/local/bin"
+# ever node binary files location
+ever_node_bin_dir: "/usr/local/bin"
 
-# TON node tools binary files location
-ton_rnode_tools_dir: "/usr/local/bin"
+# ever node tools binary files location
+ever_node_tools_bin_dir: "/usr/local/bin"
 
-# Get TON node commit id: https://github.com/tonlabs/ton-labs-node/commits
-ton_rnode_github_repo: "https://github.com/tonlabs/ton-labs-node.git"
-ton_rnode_github_commit_id: "master"
-ton_rnode_sha2_native_enabled: true
+# Get ever node commit id: https://github.com/tonlabs/ever-node/commits
+ever_node_github_repo: "https://github.com/tonlabs/ever-node.git"
+ever_node_github_commit_id: "master"
 
-# Recompile TON node binary without sources changes: false|true
-ton_rnode_force_recompile: true
+ever_node_sha2_native_enabled: true
+
+# Recompile ever node binary without sources changes: false|true
+ever_node_force_recompile: true
 
 # Statsd exporter suport
-ton_rnode_metrics_enabled: false
+ever_node_metrics_enabled: false
 
 # MUST be 'true' if you deployment dapp server (i.e. always at this playbook).
-ton_rnode_external_db_enabled: true
+ever_node_external_db_enabled: true
 
-# TON node adnl port (udp)
-ton_rnode_adnl_port: "30303"
+# ever node adnl port (udp)
+ever_node_adnl_port: "30303"
 
-# TON node console management port (tcp)
-ton_rnode_console_port: "4825"
+# ever node console management port (tcp)
+ever_node_console_port: "4825"
 
-# Get freeton node tools commit id: https://github.com/tonlabs/ton-labs-node-tools/commits"
-ton_rnode_tools_github_repo: "https://github.com/tonlabs/ton-labs-node-tools.git"
-ton_rnode_tools_github_commit_id: "master"
+# Get freeever node tools commit id: https://github.com/tonlabs/ever-node-tools/commits"
+ever_node_tools_github_repo: "https://github.com/tonlabs/ever-node-tools.git"
+ever_node_tools_github_commit_id: "master"
 
-# Recompile TON node tools binary without sources changes: false|true
-ton_rnode_tools_force_recompile: false
+# Recompile ever node tools binary without sources changes: false|true
+ever_node_tools_force_recompile: false
 
 # Get tonos cli commit id: https://github.com/tonlabs/tonos-cli/commits"
 tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
@@ -194,14 +240,3 @@ tonos_cli_github_commit_id: "master"
 
 # Recompile tonos-cli binary without sources changes: false|true
 tonos_cli_force_recompile: false
-
-# zstd parameters
-zstd_version: 1.5.1
-
-# Rust parameters
-rustup_mirror : https://static.rust-lang.org/rustup/dist
-rustup_platform : x86_64-unknown-linux-gnu
-# Default rust version: stable|beta|nightly|<major.minor>|<major.minor.patch>
-rustup_default_toolchain: "1.66.1"
-# Rust flags compile environment
-rust_flags: "-C target-cpu=native"

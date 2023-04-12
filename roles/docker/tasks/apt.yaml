@@ -1,0 +1,49 @@
+- name: non-astra block
+  block:
+    - name: Add Docker apt key.
+      apt_key:
+        url: "{{ docker_apt_gpg_key }}"
+        id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+        state: present
+      register: add_repository_key
+      ignore_errors: "{{ docker_apt_ignore_key_error }}"
+
+    - name: Add Docker apt key (alternative for older systems without SNI).
+      shell: |
+        set -o pipefail
+        curl -sSL {{ docker_apt_gpg_key }} | apt-key add -
+      args:
+        warn: false
+        executable: /bin/bash
+      when: add_repository_key.failed
+
+    - name: Remove previosly created docker repo list
+      file:
+        state: absent
+        path: /etc/apt/sources.list.d/docker.list
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "{{ docker_apt_repository }}"
+        filename: docker
+        state: present
+        update_cache: true
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce={{ docker_debuntu_full_package_version }}
+          - docker-ce-cli={{ docker_debuntu_full_package_version }}
+          - docker-ce-rootless-extras={{ docker_debuntu_full_package_version }}
+          - containerd.io={{ containerd_deb_version }}
+        state: present
+  when: ansible_distribution != "Astra Linux"
+
+# Don't ask
+- name: Install Docker
+  apt:
+    name:
+      - docker.io
+    state: present
+    install_recommends: no
+  when: ansible_distribution == "Astra Linux"

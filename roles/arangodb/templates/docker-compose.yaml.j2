@@ -12,7 +12,7 @@ services:
       LETSENCRYPT_EMAIL: "{{ le_email }}"
       ARANGODB_OVERRIDE_DETECTED_TOTAL_MEMORY: 343579738368
     networks:
-      - {{ docker_network_name }}
+      - {{ arangodb_net }}
     volumes:
       - db3:/var/lib/arangodb3
       - data:/arango/db

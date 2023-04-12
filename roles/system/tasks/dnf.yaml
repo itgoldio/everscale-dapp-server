@@ -1,47 +1,11 @@
 ---
-- name: Install prerequisites for Docker repository
-  dnf:
-    name:
-      - jq
-      - python3-libselinux
-      - python3
-      - python3-pip
-    state: latest
-
 - name: Install epel-release package in oracle
   dnf: 
     name: 
       - oracle-epel-release-el8
     state: latest
   when: ansible_facts['distribution'] == "OracleLinux"
-
-- name: Add docker repo
-  yum_repository:
-    name: docker-ce-stable
-    description: Docker CE Stable - $basearch
-    file: docker-ce-stable
-    baseurl: https://download.docker.com/linux/centos/8/$basearch/stable
-    gpgcheck: yes
-    gpgkey: https://download.docker.com/linux/centos/gpg
-    enabled: yes
-
-- name: Install docker and dependencies
-  dnf:
-    name:
-      - "docker-ce-{{ docker_version }}"
-    state: present
-    update_cache: yes
-  register: install_state
-  retries: 10
-  delay: 10
-  until: install_state.rc == 0
   
-- name: Reload docker service
-  service:
-    name: docker
-    enabled: yes
-    state: restarted
-
 - name: Install system packages
   dnf:
     name:
@@ -60,7 +24,6 @@
       - git
       - rsync
     state: latest
-
 
 - name: Install chrony package
   dnf:

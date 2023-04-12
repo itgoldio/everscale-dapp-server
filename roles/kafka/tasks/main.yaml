@@ -48,10 +48,7 @@
   loop:
     - '{{ dapp_dir }}/kafka/launch.sh'
     - '{{ dapp_dir }}/kafka/build_check/check.sh'
-    - '{{ dapp_dir }}/kafka/build_check/create_connectors.sh'
-    - '{{ dapp_dir }}/kafka/build_check/create_topics.sh'
     - '{{ dapp_dir }}/kafka/build_check/entrypoint.sh'
-    - '{{ dapp_dir }}/kafka/build_check/connect-cli'
 
 - name: Restart kafka service 
   shell: /usr/local/bin/docker-compose up -d

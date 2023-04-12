@@ -4,7 +4,6 @@ ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 [dapp]
 dapp.company.tld ansible_host=127.0.0.1
 
-
 [dapp:vars]
 serviceName=dapp
 

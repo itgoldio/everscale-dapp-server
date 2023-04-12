@@ -1,3 +1,18 @@
+---
+- name: Remove default rhel podman packages
+  dnf:
+    name:
+      - docker
+      - docker-client
+      - docker-client-latest
+      - docker-common
+      - docker-latest
+      - docker-latest-logrotate
+      - docker-logrotate
+      - docker-engine
+      - docker-buildx-plugin
+      - podman
+    state: absent
 
 - name: Install prerequisites for Docker repository
   dnf:
@@ -13,21 +28,27 @@
     name: docker-ce-stable
     description: Docker CE Stable - $basearch
     file: docker-ce-stable
-    baseurl: https://download.docker.com/linux/centos/8/$basearch/stable
+    baseurl: "https://download.docker.com/linux/centos/{{ ansible_distribution_major_version }}/$basearch/stable"
     gpgcheck: yes
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
-    
-- name: Install docker and it dependencies
+
+- name: Install docker and dependencies
   dnf:
     name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-    state: latest
+      - "docker-ce-{{ docker_version }}"
+      - "docker-ce-cli-{{ docker_version }}"
+      - "docker-ce-rootless-extras-{{ docker_version }}"
+      - "containerd.io-{{ containerd_yum_version }}"
+    state: present
     update_cache: yes
+  register: install_state
+  retries: 10
+  delay: 10
+  until: install_state.rc == 0
 
-- name: reload docker service
+
+- name: Restart docker service
   service:
     name: docker
     enabled: yes

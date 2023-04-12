@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=q-server
-      - VIRTUAL_PORT=4000
+      - VIRTUAL_PORT="{{ q_server_port }}"
       - Q_DATA_MUT
       - Q_DATA_HOT
       - Q_REQUESTS_MODE
@@ -22,8 +22,6 @@ services:
       - Q_SLOW_QUERIES_ACCOUNTS
       - Q_SLOW_QUERIES_BLOCKS_HOT
       - Q_SLOW_QUERIES_TRANSACTIONS_HOT
-#    volumes:
-#      - ./q-config.json:/home/node/dist/server/q-config.json
     networks:
       - {{ q_server_net }}
     expose:
