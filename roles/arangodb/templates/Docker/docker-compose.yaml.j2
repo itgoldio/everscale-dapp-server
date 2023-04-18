@@ -7,10 +7,6 @@ services:
     restart: unless-stopped
     environment:
       ARANGO_NO_AUTH: 1
-      VIRTUAL_HOST: {{ arangodb_container_name }}.{{ inventory_hostname }}
-      VIRTUAL_PORT: {{ arangodb_container_name }}
-      LETSENCRYPT_HOST: {{ arangodb_container_name }}.{{ inventory_hostname }}
-      LETSENCRYPT_EMAIL: {{ system_ssl_email }}
     volumes:
       - db3:/var/lib/arangodb3
       - data:/arango/db

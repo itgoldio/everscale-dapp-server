@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2023-04-18
+
+### Improvements
+
+- System role was fully redesigned and divided to system and docker roles.
+- ArangoDB version updated to 3.10.5.
+- Kafka components migrated to UBI (universal base image). Also added [kafka-ui](https://github.com/provectus/kafka-ui) tool for kafka simple management.
+- Nginx proxy component was fully redesigned
+- Removed web.root role
+
 ## [0.1.2] – 2021-10-21
 
 ### Improvements
