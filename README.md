@@ -14,7 +14,7 @@ Ubuntu 21, 20, 18, 16, 14 not yet tested. But you can help our team to test it b
 
 # Getting Started
 
-First of all you need A-record for your dapp. Also you have to create DNS records if you want to manage kafka/arangodb, pointed to the same IP:
+First of all you need A-record for your dapp. Also you have to create additional DNS records if you want to manage kafka/arangodb, pointed to the same IP:
 
 <pre><code>
 dapp.company.example                IN A   123.45.67.8
