@@ -3,10 +3,9 @@ services:
     build:
       context: ./build
     container_name: {{ q_server_container_name }}
+    hostname: {{ q_server_container_name }}
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST={{ q_server_container_name }}
-      - VIRTUAL_PORT="{{ q_server_port }}"
       - Q_DATA_MUT
       - Q_DATA_HOT
       - Q_REQUESTS_MODE
