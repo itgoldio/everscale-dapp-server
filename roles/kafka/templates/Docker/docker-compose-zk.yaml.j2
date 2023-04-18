@@ -123,9 +123,9 @@ services:
       retries: 3
       start_period: 120s
 
-
 networks:
-  {{ kafka_net }}:
+  default:
+    name: {{ kafka_net }}
     external: true
 
 volumes:
