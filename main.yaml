@@ -8,7 +8,6 @@
       register: output
       changed_when: output.stdout != ""
   vars_files:
-    - vars/vars.yaml
     - vars/vars-kafka.yaml
     - vars/vars-nginx.yaml
     - vars/vars-arangodb.yaml
