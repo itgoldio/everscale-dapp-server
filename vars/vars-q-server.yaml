@@ -1,0 +1,7 @@
+# Q-SERVER settings
+q_server_container_name: "q-server"
+# q-server (https://github.com/tonlabs/ton-q-server)
+#
+q_server_port: 4000
+q_server_mem_limit: "5G"
+q_server_net: "{{ docker_network_name }}"

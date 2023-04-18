@@ -1,0 +1,88 @@
+# EVER node settings
+#
+# Choose net: possible values are main, net, fld and rfld (all networks except 'main' are testnets)
+ever_node_config: "main"
+
+ever_node_global_config_URL_list:
+  main:
+    config_URL: "https://raw.githubusercontent.com/tonlabs/main.ton.dev/master/configs/ton-global.config.json"
+    DAPP_address: "https://ever.live"
+    DAPP_endpoints: "https://eri01.main.everos.dev,https://gra01.main.everos.dev,https://gra02.main.everos.dev,https://lim01.main.everos.dev,https://rbx01.main.everos.dev,https://main2.ton.dev,https://main3.ton.dev,https://main4.ton.dev"
+  net:
+    config_URL: "https://raw.githubusercontent.com/tonlabs/net.ton.dev/master/configs/ton-global.config.json"
+    DAPP_address: "https://net.ever.live/"
+    DAPP_endpoints: "https://net1.ton.dev,https://net5.ton.dev"
+  fld:
+    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/fld.ton.dev/main/configs/fld.ton.dev/ton-global.config.json"
+    DAPP_address: "https://gql.custler.net"
+    DAPP_endpoints: "https://gql.custler.net"
+  rfld:
+    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/custler.uninode/main/configs/rfld.ton.dev/ton-global.config.json"
+    DAPP_address: "https://rfld.ever.live/"
+    DAPP_endpoints: "https://rfld-dapp.itgold.io"
+
+# systemd service name
+ever_node_service_name: "ever-node"
+
+# Set ever node service enabled for autostart after system restart: yes|no
+ever_node_service_autostart: "yes"
+
+# ever node service state after ansible script deploying: restarted|started|stopped
+ever_node_service_state: "restarted"
+
+# ever node directories:
+# sources
+ever_node_src_dir: "/usr/local/src/everscale"
+
+# ever node work directory (topdir for configs/logs and node database)d
+ever_node_work_dir: "/var/ton-work"
+
+# ever node log directory
+ever_node_log_dir: "{{ ever_node_work_dir }}/logs"
+
+# ever node config directory
+ever_node_config_dir: "{{ ever_node_work_dir }}/configs"
+
+# ever node database directory
+ever_node_db_dir: "{{ ever_node_work_dir }}/rnode_db"
+
+# ever node binary files location
+ever_node_bin_dir: "/usr/local/bin"
+
+# ever node tools binary files location
+ever_node_tools_bin_dir: "/usr/local/bin"
+
+# Get ever node commit id: https://github.com/tonlabs/ever-node/commits
+ever_node_github_repo: "https://github.com/tonlabs/ever-node.git"
+ever_node_github_commit_id: "master"
+
+ever_node_sha2_native_enabled: true
+
+# Recompile ever node binary without sources changes: false|true
+ever_node_force_recompile: true
+
+# Statsd exporter suport
+ever_node_metrics_enabled: false
+
+# MUST be 'true' if you deployment dapp server (i.e. always at this playbook).
+ever_node_external_db_enabled: true
+
+# ever node adnl port (udp)
+ever_node_adnl_port: "30303"
+
+# ever node console management port (tcp)
+ever_node_console_port: "4825"
+
+# Get freeever node tools commit id: https://github.com/tonlabs/ever-node-tools/commits"
+ever_node_tools_github_repo: "https://github.com/tonlabs/ever-node-tools.git"
+ever_node_tools_github_commit_id: "master"
+
+# Recompile ever node tools binary without sources changes: false|true
+ever_node_tools_force_recompile: false
+
+# Get tonos cli commit id: https://github.com/tonlabs/tonos-cli/commits"
+tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
+tonos_cli_github_commit_id: "master"
+
+# Recompile tonos-cli binary without sources changes: false|true
+tonos_cli_force_recompile: false

@@ -1,0 +1,56 @@
+ARG JONASAL_NGINX_CERTBOT_TAG={{ nginx_certbot_tag }}
+FROM jonasal/nginx-certbot:${JONASAL_NGINX_CERTBOT_TAG} AS builder
+
+ENV NGINX_VERSION {{ nginx_version }}
+ENV NGX_MODULE_COMMIT {{ ngx_module_commit }}
+ENV NGX_MODULE_PATH ngx_brotli
+
+
+RUN wget "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -O nginx.tar.gz && \
+    wget "https://github.com/google/ngx_brotli/archive/${NGX_MODULE_COMMIT}.tar.gz" -O ${NGX_MODULE_PATH}.tar.gz
+
+# For latest build deps, see https://github.com/nginxinc/docker-nginx/blob/master/mainline/alpine/Dockerfile
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    libc-dev \
+    make \
+    openssl-dev \
+    pcre-dev \
+    zlib-dev \
+    linux-headers \
+    libxslt-dev \
+    gd-dev \
+    geoip-dev \
+    perl-dev \
+    libedit-dev \
+    mercurial \
+    bash \
+    alpine-sdk \
+    findutils \
+    brotli-dev
+
+# Reuse same cli arguments as the nginx:alpine image used to build
+RUN CONFARGS=$(nginx -V 2>&1 | sed -n -e 's/^.*arguments: //p') \
+    tar -zxf nginx.tar.gz && \
+    tar -xzf "${NGX_MODULE_PATH}.tar.gz" && \
+    cd nginx-$NGINX_VERSION && \
+    ./configure --with-compat $CONFARGS --with-http_mp4_module --add-dynamic-module="$(pwd)/../${NGX_MODULE_PATH}-${NGX_MODULE_COMMIT}" && \
+    make && make install
+
+# save /usr/lib/*so deps
+RUN mkdir /so-deps && cp -L $(ldd /usr/local/nginx/modules/ngx_http_brotli_filter_module.so 2>/dev/null | grep '/usr/lib/' | awk '{ print $3 }' | tr '\n' ' ') /so-deps
+
+FROM jonasal/nginx-certbot:${JONASAL_NGINX_CERTBOT_TAG}
+
+WORKDIR /etc/nginx
+COPY --from=builder  /so-deps /usr/lib
+COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_filter_module.so /usr/local/nginx/modules/ngx_http_brotli_filter_module.so
+COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_static_module.so /usr/local/nginx/modules/ngx_http_brotli_static_module.so
+
+RUN apk upgrade --no-cache && \
+#    pip3 install --upgrade pip \
+    pip3 install -U certbot-dns-powerdns
+
+COPY configs/nginx.conf configs/ssl_params /etc/nginx/
+COPY configs/redirector.conf /etc/nginx/conf.d/redirector.conf
+COPY scripts/run_local_ca.sh /scripts/run_local_ca.sh

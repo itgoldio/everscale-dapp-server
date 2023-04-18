@@ -1,0 +1,34 @@
+services:
+  proxy:
+    build:
+      context: ./build
+    container_name: {{ nginx_container_name }}
+    restart: always
+    environment:
+      - CERTBOT_EMAIL={{ system_ssl_email }}
+      - STAGING=0
+      - DHPARAM_SIZE=2048
+      - RSA_KEY_SIZE=2048
+      - ELLIPTIC_CURVE=secp256r1
+      - USE_ECDSA=1
+      - RENEWAL_INTERVAL=15d    
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - nginx_secrets:/etc/letsencrypt
+      - ./etc_nginx/user_conf.d:/etc/nginx/user_conf.d/
+      - ./etc_nginx/htpasswd:/etc/nginx/htpasswd/
+      - ./logs/:/var/log/nginx/
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/nginx_status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  default:
+    name: {{ nginx_net }}
+    external: true
+volumes:
+  nginx_secrets:

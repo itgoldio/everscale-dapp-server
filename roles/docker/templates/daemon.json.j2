@@ -1,0 +1,10 @@
+{
+    "log-driver": "{{ docker_log_driver }}",
+{% if docker_log_opts.items() | length > 0 %}
+    "log-opts": {
+{%- for (key, value) in docker_log_opts.items() +%}
+        "{{ key }}": "{{ value }}"{% if not loop.last %},{% endif %}
+{% endfor +%}
+    }
+{% endif %}
+}

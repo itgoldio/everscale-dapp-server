@@ -1,0 +1,22 @@
+# ArangoDB settings (please make sure you've changed "arangodb_password" and "arangodb_web_password")
+#
+arangodb_version: "3.10.5"
+arangodb_container_name: "arangodb"
+arangodb_port: 8529
+arangodb_user: "root"
+arangodb_web_user: "webadmin"
+arangodb_web_password: "CH@NGE-ME!!!"
+arangodb_password: "CH@NGE-ME!!!"
+arangodb_database_name: "blockchain"
+
+arangodb_mem_limit: 16G
+arangodb_net: "{{ docker_network_name }}"
+arangoni_host: "arangoni"
+
+# Set this values as 30% of RAM in bytes
+arangodb_rocksdb_block_cache_size: 10307921510
+arangodb_rocksdb_total_write_buffer_size: 10307921510
+
+arangodb_query_memory_limit: 512000000
+# This value set as 20% of RAM in bytes
+arangodb_cache_size: 6871947674

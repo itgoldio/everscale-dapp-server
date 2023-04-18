@@ -9,15 +9,24 @@
       changed_when: output.stdout != ""
   vars_files:
     - vars/vars.yaml
+    - vars/vars-kafka.yaml
+    - vars/vars-nginx.yaml
+    - vars/vars-arangodb.yaml
+    - vars/vars-docker.yaml
+    - vars/vars-q-server.yaml
+    - vars/vars-system.yaml
+    - vars/vars-evernode.yaml
+    - vars/vars-statsd.yaml
   roles:
     - system
     - docker
     - nginx
-    - web-root
-    - arangodb
     - kafka
+    - arangodb
     - q-server
     - statsd
-    - ton-node
+    - ever-node
   tags: [ "all" ]
+
+
 

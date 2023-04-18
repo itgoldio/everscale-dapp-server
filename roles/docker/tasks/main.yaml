@@ -1,4 +1,27 @@
 ---
+- name: Create docker directory
+  file:
+    state: directory
+    path: /etc/docker
+    mode: 0755
+    group: root
+    owner: root
+
+- name: Add daemon.json for customizing docker
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: 0644
+    group: root
+    owner: root
+  register: daemon_json_changed
+  notify: restart_docker_daemon
+
+- name: Check docker existance
+  stat:
+    path: /usr/bin/docker
+  register: docker_status
+
 - name: Include OS specific tasks
   include_tasks: "{{ ansible_pkg_mgr }}.yaml"
 
@@ -13,8 +36,14 @@
 - name: Install docker python package
   pip:
     name:
-      - docker
+      - "docker<6"
       - docker-compose
+      - "cryptography<36"
     state: latest
+    extra_args: "-i https://pypi.org/simple"
   vars:
     ansible_python_interpreter: python3
+
+- name: Creating docker network
+  docker_network:
+    name: "{{ docker_network_name }}"

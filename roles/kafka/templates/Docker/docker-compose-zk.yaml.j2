@@ -1,0 +1,132 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:{{ kafka_docker_version }}-{{ kafka_docker_tag }}
+    container_name: {{ kafka_zk_container_name }}
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: {{ kafka_zk_client_port }}
+      ZOOKEEPER_TICK_TIME: {{ kafka_zk_tick_time }}
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok"
+    expose:
+      - {{ kafka_zk_client_port }}
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 {{ kafka_zk_container_name }}  {{ kafka_zk_client_port }}"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  kafka:
+    image: confluentinc/cp-kafka:{{ kafka_docker_version }}-{{ kafka_docker_tag }}
+    container_name: {{ kafka_container_name }}
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "{{ kafka_default_port }}:{{ kafka_default_port }}"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: {{ kafka_zk_container_name }}:{{ kafka_zk_client_port }}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://{{ kafka_container_name }}:{{ kafka_port }},PLAINTEXT_HOST://{{ kafka_container_name }}:{{ kafka_default_port }}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: {{ kafka_offsets_topic_replication_factor }}
+      KAFKA_LOG4J_ROOT_LOGLEVEL: {{ kafka_log4j_root_loglevel }}
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: {{ kafka_tools_log4j_loglevel }}
+      KAFKA_LOG_RETENTION_HOURS: {{ kafka_log_retention_hours }}
+      KAFKA_LOG_ROLL_MS: {{ kafka_log_roll_ms }}
+      KAFKA_LOG_SEGMENT_BYTES: {{ kafka_log_segment_bytes }}
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: {{ kafka_log_retention_check_interval_ms }}
+      KAFKA_CLEANUP_POLICY: delete
+      KAFKA_RETENTION_MS: {{ kafka_retention_ms }}
+      KAFKA_MESSAGE_MAX_BYTES: {{ kafka_message_max_bytes }}
+      KAFKA_RECEIVE_MESSAGE_MAX_BYTES: {{ kafka_receive_message_max_bytes }}
+      KAFKA_REPLICA_FETCH_MAX_BYTES: {{ kafka_replica_fetch_max_bytes }}
+    volumes:
+      - data:/var/lib/kafka/data
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:{{ kafka_docker_version }}-{{ kafka_docker_tag }}
+    container_name: {{ kafka_schema_registry_container_name }}
+    hostname: {{ kafka_schema_registry_container_name }}
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+      - kafka
+    expose:
+      - {{ kafka_schema_registry_port }}
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: {{ kafka_zk_container_name }}:{{ kafka_zk_client_port }}
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: {{ kafka_container_name }}:{{ kafka_port }}
+      SCHEMA_REGISTRY_HOST_NAME: {{ kafka_schema_registry_container_name }}
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:{{ kafka_schema_registry_port }}
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: PLAINTEXT
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: {{ kafka_schema_registry_log4j_root_loglevel }}
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+
+  connect:
+    image: confluentinc/cp-kafka-connect:{{ kafka_docker_version }}-{{ kafka_docker_tag }}
+    container_name: {{ kafka_connect_container_name }}
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+      - schema-registry
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: {{ kafka_container_name }}:{{ kafka_port }}
+      CONNECT_REST_ADVERTISED_HOST_NAME: {{ kafka_connect_container_name }}
+      CONNECT_REST_PORT: {{ kafka_connect_port }}
+      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: {{ kafka_connect_key_converter }}
+      CONNECT_VALUE_CONVERTER: {{ kafka_connect_value_converter }}
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://{{ kafka_schema_registry_container_name }}:{{ kafka_schema_registry_port }}
+      CONNECT_INTERNAL_KEY_CONVERTER: {{ kafka_connect_internal_key_converter }}
+      CONNECT_INTERNAL_VALUE_CONVERTER: {{ kafka_connect_internal_value_converter }}
+      CONNECT_ZOOKEEPER_CONNECT: {{ kafka_zk_container_name }}:{{ kafka_zk_client_port }}
+      CONNECT_PRODUCER_INTERCEPTOR_CLASSES: {{ kafka_connect_producer_interceptor_classes }}
+      CONNECT_CONSUMER_INTERCEPTOR_CLASSES: {{ kafka_connect_consumer_interceptor_classes }}
+      CONNECT_PLUGIN_PATH: {{ kafka_connect_plugin_path }}
+      CONNECT_LOG4J_ROOT_LOGGER: {{ kafka_connect_log4j_root_logger }}
+      CONNECT_FETCH_MESSAGE_MAX_BYTES: {{ kafka_connect_fetch_message_max_bytes }}
+      CONNECT_MAX_REQUEST_SIZE: {{ kafka_connect_max_request_size }}
+      CONNECT_MAX_PARTITION_FETCH_BYTES: {{ kafka_connect_max_partition_fetch_bytes }}
+    expose:
+      - {{ kafka_connect_port }}
+    volumes:
+      - ./files/kafka-connect-arangodb:/usr/share/java/kafka-connect-arangodb
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://{{ kafka_connect_container_name }}:{{ kafka_connect_port }}/"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  init-kafka:
+    build:
+      context: build_check
+    container_name: init-kafka
+    restart: unless-stopped
+    depends_on:
+      connect:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/work/check.sh {{ kafka_connect_container_name }}:{{ kafka_connect_port }}"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+
+networks:
+  default:
+    name: {{ kafka_net }}
+    external: true
+
+volumes:
+  data:

@@ -1,60 +1,64 @@
 - name: Make sure destination directory exists
   file:
     recurse: yes
-    path: '{{ item }}'
+    path: "{{ item }}"
     state: directory
   loop:
-    - '{{ dapp_dir }}/kafka/files/kafka-connect-arangodb'
-    - '{{ dapp_dir }}/kafka/build_check/connectors'
+    - "{{ kafka_dir }}/files/kafka-connect-arangodb"
+    - "{{ kafka_dir }}/build_check/connectors"
 
 - name: Set alias hostname for kafka at 127.0.0.1
-  ansible.builtin.lineinfile:
+  lineinfile:
     path: /etc/hosts
     regexp: '^127.0.0.1 kafka'
     line: 127.0.0.1 kafka
 
-- name: Upload files to compose dir
-  synchronize:
-    src='files/root/'
-    dest='{{ dapp_dir }}/kafka'
-
 - name: Upload files ( build_check )
   synchronize:
     src='files/build_check/'
-    dest='{{ dapp_dir }}/kafka/build_check'
+    dest='{{ kafka_dir }}/build_check'
 
 - name: Upload files ( kafka-connect )
   synchronize:
     src='files/kafka-connect-arangodb/'
-    dest='{{ dapp_dir }}/kafka/files/kafka-connect-arangodb/'
+    dest='{{ kafka_dir }}/files/kafka-connect-arangodb/'
 
-- name: Render template
+- name: Render kafka connectors templates
   template:
     src: "{{ item }}"
-    dest: "{{ dapp_dir }}/kafka/build_check/connectors/{{ item | basename | regex_replace('.j2$', '') }}"
+    dest: "{{ kafka_dir }}/build_check/connectors/{{ item | basename | regex_replace('.j2$', '') }}"
   with_fileglob:
     - ../templates/connectors/*.j2
 
-- name: Copy docker-compose file
+- name: Render kafka docker-compose template
   template:
-    src: 'docker-compose.yaml.j2'
-    dest: '{{ dapp_dir }}/kafka/docker-compose.yaml'
+    src: 'Docker/docker-compose-{{ kafka_mode }}.yaml.j2'
+    dest: '{{ kafka_dir }}/docker-compose.yaml'
 
+- name: Render init-kafka entrypoint template
+  template:
+    src: 'init-kafka/entrypoint.sh.j2'
+    dest: '{{ kafka_dir }}/build_check/entrypoint.sh'
+    mode: 0750
+
+- name: Render kafka KRaft init template
+  template:
+    src: 'kafka-enable-kraft/enable-kraft.sh.j2'
+    dest: '{{ kafka_dir }}/files/enable-kraft.sh'
+    mode: 0755
+  when: kafka_mode == "kraft"
+      
 - name: Set permissions
   file:
     path: '{{ item }}'
     state: file
     mode: u+rx,g+rx,o-rwx
   loop:
-    - '{{ dapp_dir }}/kafka/launch.sh'
-    - '{{ dapp_dir }}/kafka/build_check/check.sh'
-    - '{{ dapp_dir }}/kafka/build_check/create_connectors.sh'
-    - '{{ dapp_dir }}/kafka/build_check/create_topics.sh'
-    - '{{ dapp_dir }}/kafka/build_check/entrypoint.sh'
-    - '{{ dapp_dir }}/kafka/build_check/connect-cli'
+    - '{{ kafka_dir }}/build_check/check.sh'
+    - '{{ kafka_dir }}/build_check/entrypoint.sh'
 
 - name: Restart kafka service 
   shell: /usr/local/bin/docker-compose up -d
   args:
-    chdir: "{{ dapp_dir }}/kafka"
+    chdir: "{{ dapp_root_dir }}/kafka"
 

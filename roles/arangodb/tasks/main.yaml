@@ -1,43 +1,42 @@
-- name: make sure destination directory exists
+- name: Making arangodb folder
   file:
     recurse: yes
-    path: '{{ item }}'
+    path: "{{ arangodb_dir }}/build/arango/initdb.d"
     state: directory
-  loop:
-    - '{{ dapp_dir }}/arangodb/build/arango/initdb.d'
 
-- name: upload files
-  synchronize:
-    src='files/'
-    dest='{{ dapp_dir }}/arangodb/'
+- name: Rendering arangodb init script
+  template:
+    src: "build/upgrade-arango-db.js.j2"
+    dest: "{{ arangodb_dir }}/build/arango/initdb.d/upgrade-arango-db.js"
 
-- name: templates for compose
+- name: Rendering arangodb build template
+  template:
+    src: "Docker/Dockerfile.j2"
+    dest: "{{ arangodb_dir }}/build/Dockerfile"
+
+- name: Rendering some configs to build arangodb
   template:
     src: "{{ item }}"
-    dest: "{{ dapp_dir }}/arangodb/{{ item | basename | regex_replace('.j2$', '') }}"
-  with_fileglob:
-    - ../templates/*.j2
-
-- name: env template
-  template:
-    src: '.env.j2'
-    dest: '{{ dapp_dir }}/arangodb/.env'
-
-- name: templates for build
-  template:
-    src: "{{ item }}"
-    dest: "{{ dapp_dir }}/arangodb/build/{{ item | basename | regex_replace('.j2$', '') }}"
-  with_fileglob:
-    - ../templates/build/*.j2
-
-- name: templates for build/arango
-  template:
-    src: "{{ item }}"
-    dest: "{{ dapp_dir }}/arangodb/build/arango/{{ item | basename | regex_replace('.j2$', '') }}"
+    dest: "{{ arangodb_dir }}/build/arango/{{ item | basename | regex_replace('.j2$', '') }}"
   with_fileglob:
     - ../templates/arango/*.j2
 
-- name: restart service
+- name: Rendering arangodb docker-compose template
+  template:
+    src: "Docker/docker-compose.yaml.j2"
+    dest: "{{ arangodb_dir }}/docker-compose.yaml"
+
+- name: Rendering arangodb configs for docker-compose template
+  template:
+    src: "arango-config.j2"
+    dest: "{{ arangodb_dir }}/arango-config"
+
+- name: Rendering environment template
+  template:
+    src: ".env.j2"
+    dest: "{{ arangodb_dir }}/.env"
+
+- name: Restarting arangodb container service
   shell: /usr/local/bin/docker-compose up -d
   args:
-    chdir: "{{ dapp_dir }}/arangodb"
+    chdir: "{{ arangodb_dir }}"

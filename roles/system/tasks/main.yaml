@@ -43,8 +43,8 @@
     value: "{{ item.value }}"
     sysctl_set: true
     state: present
-    sysctl_file: "/etc/sysctl.d/99-ton.conf"
+    sysctl_file: "/etc/sysctl.d/99-everscale.conf"
     reload: true
-  loop: "{{ sysctl_conf.ton_node | list | unique }}"
+  loop: "{{ sysctl_conf.ever_node | list | unique }}"
   ignore_errors: true
   when: sysctl_set|bool and sysctl_conf | length > 0

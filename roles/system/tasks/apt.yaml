@@ -1,4 +1,5 @@
-- name: Install packages
+---
+- name: Ensure dependencies are installed.
   apt:
     name:
       - apt-transport-https
@@ -10,67 +11,21 @@
       - mc
       - git
     state: present
-    update_cache: yes
 
-- name: Add Docker s GPG key for ubuntu from official site
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
-
-- name: Verify gpg key with the fingerprint
-  apt_key:
-    id: 0EBFCD88
-    state: present
-
-- name: Configure Docker for ubuntu stable repository
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu trusty stable
-    state: present
-    update_cache: yes
-  when: ansible_distribution_version == "14.04"
-
-- name: Configure Docker for ubuntu stable repository
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
-    state: present
-    update_cache: yes
-  when: ansible_distribution_version == "16.04"
-
-- name: Configure Docker for ubuntu stable repository
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
-    state: present
-    update_cache: yes
-  when: ansible_distribution_version == "18.04"
-
-- name: Configure Docker for ubuntu stable repository
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
-    state: present
-    update_cache: yes
-  when: ansible_distribution_version == "20.04"
-
-- name: Configure Docker for ubuntu stable repository
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu impish stable
-    state: present
-    update_cache: yes
-  when: ansible_distribution_version == "21.10"
-
-- name: Install docker-ce
+- name: Ensure additional dependencies are installed (on Ubuntu < 20.04 and any other systems).
   apt:
-    name: docker-ce
+    name: gnupg2
     state: present
-    update_cache: yes
+  when: ansible_distribution != 'Ubuntu' or ansible_distribution_version is version('20.04', '<')
 
-- name: Install docker-compose from official github repo
-  get_url:
-    url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
-    dest: /usr/local/bin/docker-compose
-    mode: 'u+x,g+x'
+- name: Ensure additional dependencies are installed (on Ubuntu >= 20.04).
+  apt:
+    name: gnupg
+    state: present
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution_version is version('20.04', '>=')
 
 - block:
-    - name: Install ntp package
+    - name: Install ntp package (timesync is important)
       apt:
         name: chrony
         state: latest

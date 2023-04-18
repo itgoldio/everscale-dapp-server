@@ -1,65 +1,64 @@
-- name: make sure destination directory exists
+- name: Creating proxy container folders
   file:
     recurse: yes
-    path: '{{ item }}'
+    path: "{{ item }}"
     state: directory
   loop:
-    - '{{ dapp_dir }}/nginx/logs/'
-    - '{{ dapp_dir }}/nginx/'
-    - '{{ dapp_dir }}/nginx/htpasswd/'
-    - '{{ dapp_dir }}/nginx/logs/'
-    - '{{ dapp_dir }}/nginx/build/'
-    - '{{ dapp_dir }}/nginx/vhost.d/'
+    - "{{ nginx_proxy_dir }}/logs"
+    - "{{ nginx_proxy_dir }}/etc_nginx"
+    - "{{ nginx_proxy_dir }}/etc_nginx/htpasswd/"
+    - "{{ nginx_proxy_dir }}/etc_nginx/user_conf.d"
+    - "{{ nginx_proxy_dir }}/build/configs"
+    - "{{ nginx_proxy_dir }}/build/scripts"
 
-- name: upload main config files
-  synchronize:
-    src='files/conf/'
-    dest='{{ dapp_dir }}/nginx/'
+- name: Copying nginx configuration files
+  copy:
+    src: "{{ item }}"
+    dest: "{{ nginx_proxy_dir }}/build/configs"
+  with_items:
+    - "configs/nginx.conf"
+    - "configs/redirector.conf"
+    - "configs/ssl_params"
 
-- name: upload acme-challenge file
-  synchronize:
-    src='files/default'
-    dest='{{ dapp_dir }}/nginx/vhost.d/default'
+- name: Copying nginx startup scripts
+  copy:
+    src: "scripts/run_local_ca.sh"
+    dest: "{{ nginx_proxy_dir }}/build/scripts"
 
-- name: upload acme-challenge for graphql
-  synchronize:
-    src='files/graphql'
-    dest='{{ dapp_dir }}/nginx/vhost.d/{{ hostname }}'
+- name: Rendering proxy build template
+  template:
+    src: "Docker/Dockerfile.j2"
+    dest: "{{ nginx_proxy_dir }}/build/Dockerfile"
 
-- name: "Create a network"
-  docker_network:
-    name: "{{ docker_network_name }}"
+- name: Rendering proxy docker-compose template
+  template:
+    src: "Docker/docker-compose.yaml.j2"
+    dest: "{{ nginx_proxy_dir }}/docker-compose.yaml"
 
-- name: render template docker-compose
+- name: Rendering nginx virtual hosts configs
   template:
     src: "{{ item }}"
-    dest: "{{ dapp_dir }}/nginx/{{ item | basename | regex_replace('.j2$', '') }}"
+    dest: "{{ nginx_proxy_dir }}/etc_nginx/user_conf.d/{{ item | basename | regex_replace('.j2$', '') }}"
   with_fileglob:
-    - ../templates/docker-compose.yaml.j2
+    - ../templates/vhost_configs/vhost-*.j2
 
-- name: render template
-  template:
-    src: "{{ item }}"
-    dest: "{{ dapp_dir }}/nginx/build/{{ item | basename | regex_replace('.j2$', '') }}"
-  with_fileglob:
-    - ../templates/Dockerfile.j2
-
-- name: generate htpasswd for arangodb vhost
-  community.general.htpasswd:
-    path: '{{ dapp_dir }}/nginx/htpasswd/{{ arangodb_host }}.{{ hostname }}'
-    name: admin
-    password: "{{ arangodb_password }}"
+- name: Generating htpasswd for arangodb vhost
+  htpasswd:
+    path: "{{ nginx_proxy_dir }}/etc_nginx/htpasswd/{{ arangodb_container_name }}.{{ system_hostname }}"
+    name: "{{ arangodb_web_user }}"
+    password: "{{ arangodb_web_password }}"
     crypt_scheme: md5_crypt
 
-- name: generate htpasswd for arangoni vhost
-  community.general.htpasswd:
-    path: '{{ dapp_dir }}/nginx/htpasswd/{{ arangoni_host }}.{{ hostname }}'
-    name: admin
-    password: "{{ arangodb_password }}"
+- name: Generating htpasswd for kafka-ui vhost
+  htpasswd:
+    path: "{{ nginx_proxy_dir }}/etc_nginx/htpasswd/{{ kafka_ui_container_name }}.{{ system_hostname }}"
+    name: "{{ kafka_ui_webuser }}"
+    password: "{{ kafka_ui_web_password }}"
     crypt_scheme: md5_crypt
 
-- name: restart service
+
+- name: Restarting proxy service
   shell: /usr/local/bin/docker-compose up -d
   args:
-    chdir: "{{ dapp_dir }}/nginx"
+    chdir: "{{ nginx_proxy_dir }}"
 
