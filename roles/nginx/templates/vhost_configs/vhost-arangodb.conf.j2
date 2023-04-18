@@ -1,7 +1,6 @@
 server {
     server_name {{ arangodb_container_name }}.{{ system_hostname }};
     access_log /var/log/nginx/access.log;
-    listen 80 ;
     listen 443 ssl http2 ;
     # Load the certificate files.
     ssl_certificate         /etc/letsencrypt/live/{{ arangodb_container_name }}.{{ system_hostname }}/fullchain.pem;
