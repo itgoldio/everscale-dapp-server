@@ -41,5 +41,4 @@ server {
         auth_basic_user_file /etc/nginx/htpasswd/{{ kafka_ui_container_name }}.{{ system_hostname }};
     }
 }
-{% else %}
 {% endif %}
