@@ -1,0 +1,30 @@
+services:
+  arangodb:
+    build:
+      context: ./build
+    container_name: {{ arangodb_container_name }}
+    hostname: {{ arangodb_container_name }}
+    restart: unless-stopped
+    environment:
+      ARANGO_NO_AUTH: 1
+      VIRTUAL_HOST: {{ arangodb_container_name }}.{{ inventory_hostname }}
+      VIRTUAL_PORT: {{ arangodb_container_name }}
+      LETSENCRYPT_HOST: {{ arangodb_container_name }}.{{ inventory_hostname }}
+      LETSENCRYPT_EMAIL: {{ system_ssl_email }}
+    volumes:
+      - db3:/var/lib/arangodb3
+      - data:/arango/db
+      - ./arango-config:/arango/config
+    expose:
+      - "{{ arangodb_port }}"
+    mem_limit: {{ arangodb_mem_limit }}
+
+networks:
+  default:
+    name: {{ arangodb_net }}
+    external: true
+volumes:
+  data:
+  db3:
+  datani:
+  db3ni:

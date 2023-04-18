@@ -1,0 +1,39 @@
+# Docker settings
+#
+docker_network_name: "dapp_network"
+
+# Docker version / containerd
+#
+docker_version: "20.10.24"
+containerd_yum_version: "1.6.15"
+containerd_deb_version: "1.6.15-1"
+
+################### Docker logging options ##########################
+# READ https://docs.docker.com/config/containers/logging/configure/
+# WARNING! Containers must be recreated to submit daemon.json changes
+#
+docker_log_driver: json-file
+docker_log_opts:
+  max-size: "10m"
+  max-file: "5"
+  mode: "non-blocking"
+  max-buffer-size: "10m"
+
+# docker_log_driver: "gelf"
+# docker_log_opts:
+#   "gelf-address": "udp://1.2.3.4:12201"
+#   "cache-disabled": "false"
+#   "cache-max-size": "10m"
+#   "cache-max-file": "5"
+#   "mode": "non-blocking"
+#   "max-buffer-size": "10m"
+#####################################################################
+
+
+docker_repo_url: https://download.docker.com/linux
+docker_debuntu_full_package_version: "5:{{ docker_version }}~3-0~{{ ansible_distribution | lower }}-{{ ansible_distribution_release }}"
+docker_apt_gpg_key: "{{ docker_repo_url }}/{{ ansible_distribution | lower }}/gpg"
+docker_apt_ignore_key_error: true
+docker_apt_release_channel: stable
+docker_apt_arch: amd64
+docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} {{ docker_apt_release_channel }}"

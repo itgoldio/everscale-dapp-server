@@ -43,3 +43,7 @@
     extra_args: "-i https://pypi.org/simple"
   vars:
     ansible_python_interpreter: python3
+
+- name: Creating docker network
+  docker_network:
+    name: "{{ docker_network_name }}"

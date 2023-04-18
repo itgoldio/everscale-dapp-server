@@ -1,0 +1,85 @@
+## Kafka settings (please make sure you have changed "kafka_ui_web_password")
+#
+# https://hub.docker.com/r/confluentinc/cp-kafka/tags
+kafka_docker_version: "7.3.3-1"
+#
+# Kafka docker tag must contain "ubi8"!!!
+kafka_docker_tag: "ubi8.amd64"
+
+# Kafka-ui
+#
+kafka_ui_enabled: "true"  # Possible values: true/false. Enables kafka-ui container for kafka simple management
+kafka_ui_container_name: "kafka-ui"
+kafka_ui_port: 8080
+kafka_ui_webuser: "webadmin"
+kafka_ui_web_password: "CH@NGE-ME!!!"
+
+#
+# Kafka mode. Possible values:
+# - kraft : use Kafka Raft protocol (https://cwiki.apache.org/confluence/display/KAFKA/KIP-833%3A+Mark+KRaft+as+Production+Ready) 
+# - zk : use zookeper
+kafka_mode: "kraft"
+
+# Zookeeper settings (only when kafka_mode = "zk")
+#
+kafka_zk_container_name: "zookeeper"
+kafka_zk_client_port: 2181
+kafka_zk_tick_time: 2000
+
+
+# Kafka settings
+#
+kafka_container_name: "kafka"
+kafka_cluster_id: "NWRkODMxMDYtYjRiMy00Mj" # you can use command "cat /proc/sys/kernel/random/uuid | base64 | head -c 22" to change it
+kafka_server_roles: "controller,broker"  # for KRaft mode (w/o zookeeper)
+kafka_port: 29092
+kafka_default_port: 9092
+kafka_controller_port: 9093
+kafka_message_max_bytes: 4000000
+kafka_receive_message_max_bytes: 4000000
+kafka_replica_fetch_max_bytes: 4000000
+kafka_max_partiton_fetch_bytes: 4000000
+kafka_max_request_size: 4000000
+kafka_retention_ms: 43200000
+kafka_offsets_topic_replication_factor: 1
+kafka_group_initial_rebalance_delay_ms: 0
+kafka_transaction_state_log_min_isr: 1
+kafka_transaction_state_log_replication_factor: 1
+kafka_log4j_root_loglevel: "INFO"
+kafka_tools_log4j_loglevel: "INFO"
+kafka_log_retention_hours: 4
+kafka_log_roll_ms: 600000
+kafka_log_segment_bytes: 1073741824
+kafka_log_retention_check_interval_ms: 300000
+
+# Kafka schema registry settings
+#
+kafka_schema_registry_container_name: "schema-registry"
+kafka_schema_registry_port: 8081
+kafka_schema_registry_log4j_root_loglevel: "INFO"
+
+# Kafka connect settings
+#
+kafka_connect_container_name: "connect"
+kafka_connect_port: "8083"
+kafka_connect_key_converter: "org.apache.kafka.connect.storage.StringConverter"
+kafka_connect_value_converter: "io.confluent.connect.avro.AvroConverter"
+kafka_connect_internal_key_converter: "org.apache.kafka.connect.json.JsonConverter"
+kafka_connect_internal_value_converter: "org.apache.kafka.connect.json.JsonConverter"
+kafka_connect_zookeeper_connect: zookeeper:2181
+kafka_connect_producer_interceptor_classes: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
+kafka_connect_consumer_interceptor_classes: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
+kafka_connect_plugin_path: "/usr/share/java,/usr/share/confluent-hub-components"
+kafka_connect_log4j_root_logger: "INFO"
+kafka_connect_fetch_message_max_bytes: 3001000
+kafka_connect_max_request_size: 3001000
+kafka_connect_max_partition_fetch_bytes: 3001000
+kafka_connect_rebalance_timeout_ms: 6000
+kafka_connect_scheduled_rebalance_max_delay_ms: 30000
+kafka_connect_producer_max_request_size: 10485880
+kafka_connect_consumer_max_partition_fetch_bytes: 10485880
+
+
+kafka_net: "{{ docker_network_name }}"
+kafka_mem_limit: "32G"
+

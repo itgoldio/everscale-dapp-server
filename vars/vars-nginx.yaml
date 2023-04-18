@@ -1,0 +1,16 @@
+
+## NGINX settings
+#
+# Please use https://hub.docker.com/r/jonasal/nginx-certbot/tags for required version of nginx.
+# Playbook using mainline versions of nginx. 
+nginx_version: 1.23.3
+#
+# Image based on https://hub.docker.com/r/jonasal/nginx-certbot
+nginx_certbot_tag: "4.2.0-alpine"
+#
+nginx_container_name: "proxy"
+# ngx_brotli: https://github.com/google/ngx_brotli/
+ngx_module_commit: "6e975bcb015f62e1f303054897783355e2a877dc"
+#
+nginx_net: "{{ docker_network_name }}"
+nginx_certbot_email: "some@e.mail"

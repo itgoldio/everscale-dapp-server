@@ -1,0 +1,7 @@
+# statsd settings
+statsd_udp_port: 9125
+statsd_tcp_port: 9102
+statsd_domain: "statsd:"
+statsd_net: "{{ docker_network_name }}"
+
+

@@ -29,13 +29,13 @@ root:
 # debug include debug, info and warn levels,
 # info  include info and warn
 # warn  just warn level
-  level: info
+  level: trace
   appenders:
     - rolling
 
 loggers:
   # node messages
-  ton_node:
+  ever_node:
     level: info
   boot:
     level: info
@@ -78,6 +78,9 @@ loggers:
 
   librdkafka:
     level: off
+
+  ever_node::external_db::kafka_producer:
+    level: info
 
   validator:
     level: off

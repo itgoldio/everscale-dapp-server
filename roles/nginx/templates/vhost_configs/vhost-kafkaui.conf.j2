@@ -1,0 +1,45 @@
+{% if kafka_ui_enabled == "true" %}
+server {
+    # Listen to port 443 on both IPv4 and IPv6.
+    listen 443 ssl http2;
+
+    # Domain names this server should respond to.
+    server_name {{kafka_ui_container_name}}.{{ system_hostname }};
+
+    # Load the certificate files.
+    ssl_certificate         /etc/letsencrypt/live/{{kafka_ui_container_name}}.{{ system_hostname }}/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/{{kafka_ui_container_name}}.{{ system_hostname }}/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/{{kafka_ui_container_name}}.{{ system_hostname }}/chain.pem;
+    # don't forget to include additional SSL params.
+    include ssl_params;
+    satisfy any;
+
+    # Load the Diffie-Hellman parameter.
+    ssl_dhparam /etc/letsencrypt/dhparams/dhparam.pem;
+    resolver 127.0.0.11 valid=30s;
+
+    gzip                on;
+    gzip_min_length     500;
+    gzip_proxied        any;
+    gzip_comp_level     6;
+    gzip_types          text/css text/javascript text/xml text/plain text/x-component application/javascript application/json application/xml application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+    gzip_vary           on;
+    gzip_disable        "msie6";
+
+    brotli on;
+    brotli_types          text/css text/javascript text/xml text/plain text/x-component application/javascript application/json application/xml application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+    brotli_comp_level 6;
+    brotli_min_length 500;
+
+    client_max_body_size 32m;
+    client_body_buffer_size 192m;
+
+    location / {
+        proxy_pass http://{{ kafka_ui_container_name }}:{{ kafka_ui_port }};
+        set $upstream_keepalive false;
+        auth_basic "Restricted {{ kafka_ui_container_name }}.{{ system_hostname }}";
+        auth_basic_user_file /etc/nginx/htpasswd/{{ kafka_ui_container_name }}.{{ system_hostname }};
+    }
+}
+{% else %}
+{% endif %}

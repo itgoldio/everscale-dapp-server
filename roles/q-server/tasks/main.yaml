@@ -1,15 +1,15 @@
 - name: Make sure destination directory exists
   file:
     recurse: yes
-    path: '{{ item }}'
+    path: "{{ item }}"
     state: directory
   loop:
-    - '{{ dapp_dir }}/q-server/build/'
+    - "{{ q_server_dir }}/build/"
 
 - name: Clone a github repository
   git:
     repo: https://github.com/tonlabs/ton-q-server
-    dest: "{{ dapp_dir }}/q-server/build/ton-q-server"
+    dest: "{{ q_server_dir }}/build/ton-q-server"
     clone: yes
     update: yes
     version: master
@@ -23,33 +23,29 @@
     git submodule foreach 'git submodule update  --recursive'
   args:
     executable: "/bin/bash"
-    chdir: "{{ dapp_dir }}/q-server/build/ton-q-server"
+    chdir: "{{ q_server_dir }}/build/ton-q-server"
 
 - name: Upload files to build
   synchronize:
     src='files/'
-    dest='{{ dapp_dir }}/q-server/build'
+    dest='{{ dapp_root_dir }}/q-server/build'
 
-- name: Templates for compose
+- name: Rendering q-server docker-compose template
   template:
-    src: "{{ item }}"
-    dest: "{{ dapp_dir }}/q-server/{{ item | basename | regex_replace('.j2$', '') }}"
-  with_fileglob:
-    - ../templates/*.j2
+    src: "Docker/docker-compose.yaml.j2"
+    dest: "{{ q_server_dir }}/docker-compose.yaml"
 
-- name: ENV template
+- name: Rendering ENV template
   template:
-    src: '.env.j2'
-    dest: '{{ dapp_dir }}/q-server/.env'
+    src:  ".env.j2"
+    dest: "{{ q_server_dir }}/.env"
 
-- name: Templates for build
+- name: Rendering q-server docker build template
   template:
-    src: "{{ item }}"
-    dest: "{{ dapp_dir }}/q-server/build/{{ item | basename | regex_replace('.j2$', '') }}"
-  with_fileglob:
-    - ../templates/build/*.j2
+    src: "Docker/Dockerfile.j2"
+    dest: "{{ q_server_dir }}/build/Dockerfile"
 
 - name: Restart q-server service
   shell: /usr/local/bin/docker-compose up -d
   args:
-    chdir: "{{ dapp_dir }}/q-server"
+    chdir: "{{ q_server_dir }}"

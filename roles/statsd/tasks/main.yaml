@@ -4,31 +4,31 @@
     path: '{{ item }}'
     state: directory
   loop:
-    - '{{ dapp_dir }}/statsd/'
+    - '{{ dapp_root_dir }}/statsd/'
   
 - name: upload files to build
   synchronize:
     src='files/'
-    dest='{{ dapp_dir }}/statsd'
+    dest='{{ dapp_root_dir }}/statsd'
 
 - name: upload config compose dir
   synchronize:
     src='files/'
-    dest='{{ dapp_dir }}/statsd/'
+    dest='{{ dapp_root_dir }}/statsd/'
 
 - name: templates for compose
   template:
     src: "{{ item }}"
-    dest: "{{ dapp_dir }}/statsd/{{ item | basename | regex_replace('.j2$', '') }}"
+    dest: "{{ dapp_root_dir }}/statsd/{{ item | basename | regex_replace('.j2$', '') }}"
   with_fileglob:
     - ../templates/*.j2
 
 - name: env template
   template:
     src: '.env.j2'
-    dest: '{{ dapp_dir }}/statsd/.env'
+    dest: '{{ dapp_root_dir }}/statsd/.env'
 
 - name: restart service
   shell: /usr/local/bin/docker-compose up -d
   args:
-    chdir: "{{ dapp_dir }}/statsd"
+    chdir: "{{ dapp_root_dir }}/statsd"
