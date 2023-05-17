@@ -33,7 +33,8 @@ rustup_platform : x86_64-unknown-linux-gnu
 ## Rust flags compile environment
 rust_flags: "-C target-cpu=native"
 
-
+#zstd library
+zstd_version: "1.5.1"
 
 # Kernel parameters
 sysctl_set: true  # or 'false'
