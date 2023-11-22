@@ -1,5 +1,5 @@
 ---
-- name: Remove default rhel podman packages
+- name: Removing default rhel podman packages
   dnf:
     name:
       - docker
@@ -10,11 +10,10 @@
       - docker-latest-logrotate
       - docker-logrotate
       - docker-engine
-      - docker-buildx-plugin
       - podman
     state: absent
 
-- name: Install prerequisites for Docker repository
+- name: Installing prerequisites for Docker repository
   dnf:
     name:
       - jq
@@ -23,7 +22,7 @@
       - python3-pip
     state: latest
 
-- name: Add docker repo
+- name: add docker repo
   yum_repository:
     name: docker-ce-stable
     description: Docker CE Stable - $basearch
@@ -33,13 +32,14 @@
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
 
-- name: Install docker and dependencies
+- name: Installing docker and it dependencies
   dnf:
     name:
       - "docker-ce-{{ docker_version }}"
       - "docker-ce-cli-{{ docker_version }}"
       - "docker-ce-rootless-extras-{{ docker_version }}"
       - "containerd.io-{{ containerd_yum_version }}"
+      - "docker-compose-plugin-{{ docker_compose_plugin_version }}"
     state: present
     update_cache: yes
   register: install_state
@@ -47,9 +47,3 @@
   delay: 10
   until: install_state.rc == 0
 
-
-- name: Restart docker service
-  service:
-    name: docker
-    enabled: yes
-    state: restarted

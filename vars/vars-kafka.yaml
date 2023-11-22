@@ -1,7 +1,7 @@
 ## Kafka settings (please make sure you have changed "kafka_ui_web_password")
 #
 # https://hub.docker.com/r/confluentinc/cp-kafka/tags
-kafka_docker_version: "7.3.3-1"
+kafka_docker_version: "7.3.6-1"
 #
 # Kafka docker tag must contain "ubi8"!!!
 kafka_docker_tag: "ubi8.amd64"
@@ -12,7 +12,7 @@ kafka_ui_enabled: "true"  # Possible values: true/false. Enables kafka-ui contai
 kafka_ui_container_name: "kafka-ui"
 kafka_ui_port: 8080
 kafka_ui_webuser: "webadmin"
-kafka_ui_web_password: "CH@NGE-ME!!!"
+kafka_ui_web_password: "Change_KAFKA-UI_password!"
 
 #
 # Kafka mode. Possible values:
@@ -30,7 +30,7 @@ kafka_zk_tick_time: 2000
 # Kafka settings
 #
 kafka_container_name: "kafka"
-kafka_cluster_id: "NWRkODMxMDYtYjRiMy00Mj" # you can use command "cat /proc/sys/kernel/random/uuid | base64 | head -c 22" to change it
+kafka_cluster_id: "NWRkODMxMDYtYjRiMy00Mj" # you have to use shell command "cat /proc/sys/kernel/random/uuid | base64 | head -c 22" to change it
 kafka_server_roles: "controller,broker"  # for KRaft mode (w/o zookeeper)
 kafka_port: 29092
 kafka_default_port: 9092

@@ -1,5 +1,5 @@
 ---
-- name: Remove default rhel podman packages
+- name: remove default rhel podman packages
   yum:
     name:
       - docker
@@ -10,18 +10,29 @@
       - docker-latest-logrotate
       - docker-logrotate
       - docker-engine
-      - docker-buildx-plugin
       - podman
     state: absent
   vars:
     ansible_python_interpreter: python2
 
-- name: Delete old docker repo
+- name: installing yum-utils and stuff
+  yum:
+    name:
+      - yum-utils
+      - curl
+      - jq
+      - python3
+      - python3-pip
+    state: latest
+  vars:
+    ansible_python_interpreter: python2
+
+- name: delete old docker repo
   file:
     path: /etc/yum.repos.d/docker-ce.repo
     state: absent
 
-- name: Add docker repo
+- name: add docker repo
   yum_repository:
     name: docker-ce-stable
     description: Docker CE Stable - $basearch
@@ -31,18 +42,13 @@
     gpgkey: https://download.docker.com/linux/centos/gpg
     enabled: yes
 
-- name: Install docker and dependencies
+- name: Install docker and it dependencies
   yum:
     name:
       - "docker-ce-{{ docker_version }}"
       - "docker-ce-cli-{{ docker_version }}"
       - "docker-ce-rootless-extras-{{ docker_version }}"
       - "containerd.io-{{ containerd_yum_version }}"
+      - "docker-compose-plugin-{{ docker_compose_plugin_version }}"
     state: present
     update_cache: yes
-
-- name: reload docker service
-  service:
-    name: docker
-    enabled: yes
-    state: restarted

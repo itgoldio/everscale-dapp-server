@@ -3,14 +3,45 @@
 #
 # Please use https://hub.docker.com/r/jonasal/nginx-certbot/tags for required version of nginx.
 # Playbook using mainline versions of nginx. 
-nginx_version: 1.23.3
-#
-# Image based on https://hub.docker.com/r/jonasal/nginx-certbot
-nginx_certbot_tag: "4.2.0-alpine"
-#
+jonasal_nginx_certbot_tag: "5.0.0-nginx1.25.3-alpine"
+nginx_version: 1.25.3
+
+# Container settings
 nginx_container_name: "proxy"
-# ngx_brotli: https://github.com/google/ngx_brotli/
-ngx_module_commit: "6e975bcb015f62e1f303054897783355e2a877dc"
-#
 nginx_net: "{{ docker_network_name }}"
 nginx_certbot_email: "some@e.mail"
+ngx_ipv6_enabled: "false"
+
+## Some usefull nginx modules
+#
+# nginx available modules (comma to separate): "ngx_http_brotli_filter,ngx_http_brotli_static,ngx_http_vhost_traffic_status"
+ngx_modules_loaded: "ngx_http_brotli_filter"
+
+# nginx generic-purpose lossless compression algorithm that compresses data 
+# using a combination of a modern variant of the LZ77 algorithm, Huffman coding and 
+# 2nd order context modeling, with a compression ratio comparable to the best currently 
+# available general-purpose compression methods. It is similar in speed with deflate but offers more dense compression. 
+ngx_brotli_repo: "https://github.com/google/ngx_brotli.git"
+ngx_brotli_commit: "a71f9312c2deb28875acc7bacfdd5695a111aa53"
+ngx_brotli_path: "ngx_brotli"
+
+# nginx simple robot mitigation module using cookie based challenge/response.
+#ngx_testcookie_repo: "https://github.com/kyprizel/testcookie-nginx-module.git"
+#ngx_testcookie_commit: "64137c2f7e66e8866f56fdecaaf09ac10a034da9"
+#ngx_testcookie_path: "testcookie-nginx-module"
+
+# nginx virtual host traffic status module
+ngx_vts_repo: "https://github.com/vozlt/nginx-module-vts.git"
+ngx_vts_commit: "bd338835463811fe0221db858d865269952aaed9"
+ngx_vts_path: "ngx_vts"
+
+# nginx upstreams healthchecks
+ngx_upstream_hc_module_repo: "https://github.com/ZigzagAK/ngx_dynamic_healthcheck.git"
+ngx_upstream_hc_tag: "1.3.6"
+ngx_upstream_hc_module_path: "ngx_upstream_hc"
+
+# nginx module for operating upstreams dynamically with HTTP APIs
+ngx_dynamic_upstream_module_repo: "https://github.com/ZigzagAK/ngx_dynamic_upstream.git"
+ngx_dynamic_upstream_tag: "2.3.3"
+ngx_dynamic_upstream_module_path: "ngx_dyn_upstream"
+

@@ -1,4 +1,4 @@
-# more info in https://docs.rs/log4rs/1.0.0/log4rs/
+# more info in https://docs.rs/log4rs/1.2.0/log4rs/
 
 # Scan this file for changes every 30 seconds
 refresh_rate: 30 seconds
@@ -8,10 +8,23 @@ appenders:
   rolling:
     kind: rolling_file
     encoder:
-# Uncomment next line and comment next line (^pattern:...) for json format logs.
-#      kind: json
       pattern: "{d(%Y-%m-%d %H:%M:%S.%f)} {l} [{h({t})}] {I}: {m}{n}"
     path: {{ ever_node_log_dir }}/node.log
+    policy:
+      kind: compound
+      trigger:
+        kind: size
+        limit: 1 gb
+      roller:
+        kind: fixed_window
+        pattern: {{ ever_node_log_dir }}/node.{}.log
+        count: 10
+        base: 1
+  node_neighbours_rolling:
+    kind: rolling_file
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S.%f)} {l} [{h({t})}] {I}: {m}{n}"
+    path: {{ ever_node_log_dir }}/node_neighbours.log
     policy:
       kind: compound
       trigger:
@@ -19,9 +32,10 @@ appenders:
         limit: 100 mb
       roller:
         kind: fixed_window
-        pattern: {{ ever_node_log_dir }}/node.{}.log
+        pattern: {{ ever_node_log_dir }}/node_neighbours.{}.log
         count: 10
         base: 1
+
 
 root:
 # level can be: trace, debug, info, warn
@@ -29,10 +43,10 @@ root:
 # debug include debug, info and warn levels,
 # info  include info and warn
 # warn  just warn level
-  level: trace
+  level: info
   appenders:
     - rolling
-
+	
 loggers:
   # node messages
   ever_node:
@@ -46,9 +60,45 @@ loggers:
   storage:
     level: info
 
+  ever_node::network::neighbours:
+    level: info
+    appenders:
+      - node_neighbours_rolling
+    additive: false
+
   # adnl messages
   adnl:
     level: off
+
+  adnl_query:
+    level: off
+
+  overlay:
+    level: off
+
+  overlay_broadcast:
+    level: off
+
+  rldp:
+    level: off
+
+  dht:
+    level: off
+
+  # block messages
+  ton_block:
+    level: info
+
+  # block messages
+  executor:
+    level: info
+
+  # tvm messages
+
+  # adnl messages
+  adnl:
+    level: off
+
   adnl_query:
     level: off
 
@@ -79,8 +129,8 @@ loggers:
   librdkafka:
     level: off
 
-  ever_node::external_db::kafka_producer:
-    level: info
+  validator_manager:
+    level: off
 
   validator:
     level: off

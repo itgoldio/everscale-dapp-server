@@ -14,7 +14,7 @@ Ubuntu 21, 20, 18, 16, 14 not yet tested. But you can help our team to test it b
 
 # Getting Started
 
-First of all you need A-record for your dapp. Also you have to create additional DNS records if you want to manage kafka/arangodb, pointed to the same IP:
+First of all you need to create A-record for your dapp. Also you have to create additional DNS records if you want to manage kafka/arangodb, pointed to the same IP:
 
 <pre><code>
 dapp.company.example                IN A   123.45.67.8
@@ -22,7 +22,7 @@ kafka-ui.dapp.company.example       IN A   123.45.67.8
 arangodb.dapp.company.example       IN A   123.45.67.8
 </code></pre>
 
-Second - change ```vars/vars-*.yaml``` and ```inventory/hosts.yaml```
+Second: change ```vars/vars-*.yaml``` and ```inventory/hosts.yaml```
 
 Inventory file should have correct A-record and IP in **dapp** section
 For example:
@@ -38,7 +38,13 @@ dapp.company.example ansible_host=123.45.67.8
 serviceName=dapp
 </code></pre>
 
-Third:
+Third: edit your /etc/hosts by adding "kafka" host pointed to 127.0.0.1
+
+<code><pre>
+127.0.0.1       kafka
+</code></pre>
+
+And the last:
 ```ansible-playbook -i inventory/hosts.yaml -v main.yaml```
 
 After installing you have to wait some time for everscale node sync. After everscale node sync process is completed you can open you personal dapp: https://dapp.company.example/graphql

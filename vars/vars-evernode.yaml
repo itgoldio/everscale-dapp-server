@@ -1,6 +1,6 @@
 # EVER node settings
 #
-# Choose net: possible values are main, net, fld and rfld (all networks except 'main' are testnets)
+# Choose net: possible values are main, net, fld (all networks except 'main' are testnets)
 ever_node_config: "main"
 
 ever_node_global_config_URL_list:
@@ -16,10 +16,6 @@ ever_node_global_config_URL_list:
     config_URL: "https://raw.githubusercontent.com/FreeTON-Network/fld.ton.dev/main/configs/fld.ton.dev/ton-global.config.json"
     DAPP_address: "https://gql.custler.net"
     DAPP_endpoints: "https://gql.custler.net"
-  rfld:
-    config_URL: "https://raw.githubusercontent.com/FreeTON-Network/custler.uninode/main/configs/rfld.ton.dev/ton-global.config.json"
-    DAPP_address: "https://rfld.ever.live/"
-    DAPP_endpoints: "https://rfld-dapp.itgold.io"
 
 # systemd service name
 ever_node_service_name: "ever-node"
@@ -54,9 +50,9 @@ ever_node_tools_bin_dir: "/usr/local/bin"
 
 # Get ever node commit id: https://github.com/tonlabs/ever-node/commits
 ever_node_github_repo: "https://github.com/tonlabs/ever-node.git"
-ever_node_github_commit_id: "master"
+ever_node_github_commit_id: "286132d4a22782fd67756fb39cb81b272be9681d"
 
-ever_node_sha2_native_enabled: true
+ever_node_profile_opt_enabled: true
 
 # Recompile ever node binary without sources changes: false|true
 ever_node_force_recompile: true
@@ -64,7 +60,7 @@ ever_node_force_recompile: true
 # Statsd exporter suport
 ever_node_metrics_enabled: false
 
-# MUST be 'true' if you deployment dapp server (i.e. always at this playbook).
+# MUST be 'true' when you deploy dapp server (i.e. always at this playbook).
 ever_node_external_db_enabled: true
 
 # ever node adnl port (udp)
@@ -78,11 +74,11 @@ ever_node_tools_github_repo: "https://github.com/tonlabs/ever-node-tools.git"
 ever_node_tools_github_commit_id: "master"
 
 # Recompile ever node tools binary without sources changes: false|true
-ever_node_tools_force_recompile: false
+ever_node_tools_force_recompile: true
 
 # Get tonos cli commit id: https://github.com/tonlabs/tonos-cli/commits"
 tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
 tonos_cli_github_commit_id: "master"
 
 # Recompile tonos-cli binary without sources changes: false|true
-tonos_cli_force_recompile: false
+tonos_cli_force_recompile: true

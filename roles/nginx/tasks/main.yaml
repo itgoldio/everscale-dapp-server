@@ -16,7 +16,6 @@
     src: "{{ item }}"
     dest: "{{ nginx_proxy_dir }}/build/configs"
   with_items:
-    - "configs/nginx.conf"
     - "configs/redirector.conf"
     - "configs/ssl_params"
 
@@ -24,6 +23,11 @@
   copy:
     src: "scripts/run_local_ca.sh"
     dest: "{{ nginx_proxy_dir }}/build/scripts"
+
+- name: Rendering nginx.conf template
+  template:
+    src: "nginx_conf/nginx.conf.j2"
+    dest: "{{ nginx_proxy_dir }}/build/configs/nginx.conf"
 
 - name: Rendering proxy build template
   template:
@@ -56,8 +60,7 @@
     password: "{{ kafka_ui_web_password }}"
     crypt_scheme: md5_crypt
 
-
-- name: Restarting proxy service
+- name: Restarting nginx proxy service
   shell: /usr/local/bin/docker-compose up -d
   args:
     chdir: "{{ nginx_proxy_dir }}"

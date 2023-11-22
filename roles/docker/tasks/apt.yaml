@@ -1,3 +1,30 @@
+---
+- name: Ensure old versions of Docker are not installed.
+  apt:
+    name:
+      - docker
+      - docker-engine
+    state: absent
+
+- name: Ensure dependencies are installed.
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+    state: present
+
+- name: Ensure additional dependencies are installed (on Ubuntu < 20.04 and any other systems).
+  apt:
+    name: gnupg2
+    state: present
+  when: ansible_distribution != 'Ubuntu' or ansible_distribution_version is version('20.04', '<')
+
+- name: Ensure additional dependencies are installed (on Ubuntu >= 20.04).
+  apt:
+    name: gnupg
+    state: present
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution_version is version('20.04', '>=')
+
 - name: non-astra block
   block:
     - name: Add Docker apt key.
@@ -22,12 +49,24 @@
         state: absent
         path: /etc/apt/sources.list.d/docker.list
 
-    - name: Add Docker repository
+    - name: Add Docker repository.
       apt_repository:
         repo: "{{ docker_apt_repository }}"
         filename: docker
         state: present
         update_cache: true
+
+    - name: Set proper pkg version for ubuntu
+      set_fact:
+        docker_debuntu_full_package_version: "{{ docker_ubuntu_full_package_version }}"
+        docker_compose_plugin_version_deubuntu: "{{ docker_compose_plugin_version_ubuntu }}"
+      when: ansible_distribution | lower == "ubuntu"
+
+    - name: Set proper pkg version for debian
+      set_fact:
+        docker_debuntu_full_package_version: "{{ docker_debian_full_package_version }}"
+        docker_compose_plugin_version_deubuntu: "{{ docker_compose_plugin_version_debian }}"
+      when: ansible_distribution | lower == "debian"
 
     - name: Install Docker
       apt:
@@ -36,11 +75,24 @@
           - docker-ce-cli={{ docker_debuntu_full_package_version }}
           - docker-ce-rootless-extras={{ docker_debuntu_full_package_version }}
           - containerd.io={{ containerd_deb_version }}
+          - docker-compose-plugin={{ docker_compose_plugin_version_deubuntu }}
         state: present
+      when:
+        - not ansible_distribution_major_version == "9"
+
+    - name: Install Docker on Debian 9
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+      when:
+        - ansible_distribution_major_version == "9"
   when: ansible_distribution != "Astra Linux"
 
-# Don't ask
-- name: Install Docker
+- name: Install Docker.
   apt:
     name:
       - docker.io
