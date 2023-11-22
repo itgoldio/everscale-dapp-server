@@ -5,8 +5,9 @@ WORKDIR /q-server
 ADD ton-q-server .
 
 RUN npm install -g npm
-RUN npm install
+RUN npm ci
 RUN npm run tsc
+RUN npm ci --production
 
 EXPOSE 4000
 
