@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo -e "\033[1;35m[WARNING] This is aliased command \"docker compose\"\033[0m"
+docker compose $@

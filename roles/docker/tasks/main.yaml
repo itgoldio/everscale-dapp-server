@@ -22,27 +22,135 @@
     path: /usr/bin/docker
   register: docker_status
 
-- name: Include OS specific tasks
+- name: Reload docker service
+  systemd:
+    name: docker
+    state: reloaded
+  when:
+    - daemon_json_changed is changed
+    - docker_live_restore_enabled
+    - docker_status.stat.exists
+
+- name: Include os specific tasks
   include_tasks: "{{ ansible_pkg_mgr }}.yaml"
+
+- name: Supress mount-related logging
+  when:
+    - ansible_pkg_mgr == 'dnf'
+    - ansible_distribution_version is version(9, '>=')
+  block:
+    - name: Create dir for systemd service
+      file:
+        state: directory
+        path: /etc/systemd/system/run-docker-.mount.d
+        mode: '0755'
+        group: root
+        owner: root
+    - name: Copy service logging config
+      copy:
+        src: 10-silence.conf
+        dest: /etc/systemd/system/run-docker-.mount.d/10-silence.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: reload systemd daemon
+      systemd:
+        daemon_reload: true
 
 - name: Upgrade pip
   pip:
     name:
       - pip
     state: latest
+    extra_args: "-i {{ python_repository }} {{ deb12_extra_args }}"
   vars:
     ansible_python_interpreter: python3
+    deb12_extra_args: "{% if ansible_distribution | lower == 'debian' and ansible_distribution_major_version == '12' %}--break-system-packages{% else %}{% endif %}"
+  environment: "{{ proxy_env }}"
+  when: not ansible_distribution == "Altlinux"
+
+- name: Remove docker python package
+  pip:
+    name: "{{ docker_python_packages_todelete }}"
+    state: absent
+    extra_args: "{{ deb12_extra_args }}"
+  vars:
+    ansible_python_interpreter: python3
+    deb12_extra_args: "{% if ansible_distribution | lower == 'debian' and ansible_distribution_major_version == '12' %}--break-system-packages{% else %}{% endif %}"
+  environment: "{{ proxy_env }}"
 
 - name: Install docker python package
   pip:
-    name:
-      - "docker<6"
-      - docker-compose
-      - "cryptography<36"
+    name: "{{ docker_python_packages }}"
     state: latest
-    extra_args: "-i https://pypi.org/simple"
+    extra_args: "-i {{ python_repository }} {{ deb12_extra_args }} --ignore-installed"
   vars:
     ansible_python_interpreter: python3
+    deb12_extra_args: "{% if ansible_distribution | lower == 'debian' and ansible_distribution_major_version == '12' %}--break-system-packages{% else %}{% endif %}"
+  environment: "{{ proxy_env }}"
+
+- name: Create systemd dir for docker service
+  file:
+    state: directory
+    path: /etc/systemd/system/docker.service.d
+    recurse: true
+  when: docker_proxy_enabled
+
+- name: Provide systemd docker config
+  template:
+    src: http-proxy.conf.j2
+    dest: /etc/systemd/system/docker.service.d/http-proxy.conf
+    mode: 0644
+    group: root
+    owner: root
+  when: docker_proxy_enabled
+  notify: restart_docker_daemon_with_reload
+
+- name: Remove systemd docker config
+  file:
+    path: /etc/systemd/system/docker.service.d/http-proxy.conf
+    state: absent
+  when: not docker_proxy_enabled
+  notify: restart_docker_daemon_with_reload
+
+- name: Ensure docker running
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Install lazydocker
+  block:
+    - name: Get lazydocker archive
+      get_url:
+        url: 'https://github.com/jesseduffield/lazydocker/releases/download/v{{ lazydocker_version }}/lazydocker_{{ lazydocker_version }}_Linux_x86_64.tar.gz'
+        dest: '/usr/local/src/lazydocker-v{{ lazydocker_version }}.tar.gz'
+        mode: u=rwx,g=rx,o=
+      register: lazydocker_archive
+    - name: unpack lazydocker
+      unarchive:
+        src: '/usr/local/src/lazydocker-v{{ lazydocker_version }}.tar.gz'
+        dest: /usr/local/bin/
+        remote_src: yes
+        include:
+          - lazydocker
+      when: lazydocker_archive.changed
+  when:
+    - ansible_distribution != "FreeBSD"
+    - ansible_architecture == "x86_64"
+    - lazydocker_enabled
+
+- name: Include docker plugins
+  include_tasks: docker_plugins.yml
+  loop: "{{ docker_additional_plugins }}"
+  loop_control:
+    loop_var: outer_item
+
+- name: Create fake "docker-compose" for "docker compose"
+  copy:
+    src: docker-compose
+    dest: /usr/local/bin/docker-compose
+    mode: 0755
 
 - name: Creating docker network
   docker_network:

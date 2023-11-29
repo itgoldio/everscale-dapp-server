@@ -1,13 +1,31 @@
-ARG JONASAL_NGINX_CERTBOT_TAG={{ nginx_certbot_tag }}
+ARG JONASAL_NGINX_CERTBOT_TAG={{ jonasal_nginx_certbot_tag }}
 FROM jonasal/nginx-certbot:${JONASAL_NGINX_CERTBOT_TAG} AS builder
 
-ENV NGINX_VERSION {{ nginx_version }}
-ENV NGX_MODULE_COMMIT {{ ngx_module_commit }}
-ENV NGX_MODULE_PATH ngx_brotli
+ENV NGINX_VERSION={{ nginx_version }} \
+    NGX_BROTLI_REPO={{ ngx_brotli_repo }} \
+    NGX_BROTLI_COMMIT={{ ngx_brotli_commit }} \
+    NGX_BROTLI_PATH={{ ngx_brotli_path }} \
+    NGX_VTS_REPO={{ ngx_vts_repo }} \
+    NGX_VTS_COMMIT={{ ngx_vts_commit }} \
+    NGX_VTS_PATH={{ ngx_vts_path }} \
+    NGX_UPSTREAM_HC_MODULE_REPO={{ ngx_upstream_hc_module_repo }} \
+    NGX_UPSTREAM_HC_TAG={{ ngx_upstream_hc_tag }} \
+    NGX_UPSTREAM_HC_MODULE_PATH={{ ngx_upstream_hc_module_path }} \
+    NGX_DYNAMIC_UPSTREAM_MODULE_REPO={{ ngx_dynamic_upstream_module_repo }} \ 
+    NGX_DYNAMIC_UPSTREAM_TAG={{ ngx_dynamic_upstream_tag }} \
+    NGX_DYNAMIC_UPSTREAM_MODULE_PATH={{ ngx_dynamic_upstream_module_path }}
 
+
+RUN apk add --no-cache git wget
 
 RUN wget "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -O nginx.tar.gz && \
-    wget "https://github.com/google/ngx_brotli/archive/${NGX_MODULE_COMMIT}.tar.gz" -O ${NGX_MODULE_PATH}.tar.gz
+    git clone ${NGX_BROTLI_REPO} "${NGX_BROTLI_PATH}-${NGX_BROTLI_COMMIT}" && \
+    cd "${NGX_BROTLI_PATH}-${NGX_BROTLI_COMMIT}" && git reset --hard "${NGX_BROTLI_COMMIT}" && \
+    git submodule update --init && cd .. && \
+    git clone ${NGX_VTS_REPO} "${NGX_VTS_PATH}-${NGX_VTS_COMMIT}" && \
+    cd "${NGX_VTS_PATH}-${NGX_VTS_COMMIT}" && git reset --hard "${NGX_VTS_COMMIT}" && cd .. && \
+    git clone -b ${NGX_UPSTREAM_HC_TAG} "${NGX_UPSTREAM_HC_MODULE_REPO}" "${NGX_UPSTREAM_HC_MODULE_PATH}-${NGX_UPSTREAM_HC_TAG}" && \
+    git clone -b ${NGX_DYNAMIC_UPSTREAM_TAG} "${NGX_DYNAMIC_UPSTREAM_MODULE_REPO}" "${NGX_DYNAMIC_UPSTREAM_MODULE_PATH}-${NGX_DYNAMIC_UPSTREAM_TAG}"
 
 # For latest build deps, see https://github.com/nginxinc/docker-nginx/blob/master/mainline/alpine/Dockerfile
 RUN apk add --no-cache --virtual .build-deps \
@@ -15,42 +33,95 @@ RUN apk add --no-cache --virtual .build-deps \
     libc-dev \
     make \
     openssl-dev \
-    pcre-dev \
+    pcre2-dev \
     zlib-dev \
     linux-headers \
     libxslt-dev \
     gd-dev \
-    geoip-dev \
-    perl-dev \
     libedit-dev \
-    mercurial \
     bash \
     alpine-sdk \
     findutils \
+    perl-dev \
     brotli-dev
 
-# Reuse same cli arguments as the nginx:alpine image used to build
-RUN CONFARGS=$(nginx -V 2>&1 | sed -n -e 's/^.*arguments: //p') \
-    tar -zxf nginx.tar.gz && \
-    tar -xzf "${NGX_MODULE_PATH}.tar.gz" && \
+RUN tar -zxf nginx.tar.gz && \
     cd nginx-$NGINX_VERSION && \
-    ./configure --with-compat $CONFARGS --with-http_mp4_module --add-dynamic-module="$(pwd)/../${NGX_MODULE_PATH}-${NGX_MODULE_COMMIT}" && \
-    make && make install
+    ./configure \
+        --prefix=/etc/nginx \
+        --sbin-path=/usr/sbin/nginx \
+        --modules-path=/usr/lib/nginx/modules \
+        --conf-path=/etc/nginx/nginx.conf \
+        --error-log-path=/var/log/nginx/error.log \
+        --http-log-path=/var/log/nginx/access.log \
+        --pid-path=/var/run/nginx.pid \
+        --lock-path=/var/run/nginx.lock \
+        --http-client-body-temp-path=/var/cache/nginx/client_temp \
+        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --with-perl_modules_path=/usr/lib/perl5/vendor_perl \
+        --user=nginx \
+        --group=nginx \
+        --with-file-aio \
+        --with-threads \
+        --with-http_addition_module \
+        --with-http_auth_request_module \
+        --with-http_dav_module \
+        --with-http_flv_module \
+        --with-http_gunzip_module \
+        --with-http_gzip_static_module \
+        --with-http_mp4_module \
+        --with-http_random_index_module \
+        --with-http_realip_module \
+        --with-http_secure_link_module \
+        --with-http_slice_module \
+        --with-http_ssl_module \
+        --with-http_stub_status_module \
+        --with-http_sub_module \
+        --with-http_v2_module \
+        --with-http_v3_module \
+        --with-ipv6 \
+        --with-mail \
+        --with-mail_ssl_module \
+        --with-stream \
+        --with-stream_realip_module \
+        --with-stream_ssl_module \
+        --with-stream_ssl_preread_module \
+        --with-cc-opt='-Os -Wformat -Werror=format-security -g' \
+        --with-ld-opt='-Wl,--as-needed,-O1,--sort-common -Wl,-z,pack-relative-relocs' \
+        --with-compat \
+        --add-dynamic-module="$(pwd)/../${NGX_BROTLI_PATH}-${NGX_BROTLI_COMMIT}" \
+        --add-dynamic-module="$(pwd)/../${NGX_VTS_PATH}-${NGX_VTS_COMMIT}" \
+        --add-module="$(pwd)/../${NGX_UPSTREAM_HC_MODULE_PATH}-${NGX_UPSTREAM_HC_TAG}"  \
+        --add-module="$(pwd)/../${NGX_DYNAMIC_UPSTREAM_MODULE_PATH}-${NGX_DYNAMIC_UPSTREAM_TAG}" && \
+    make modules && make && make install
 
-# save /usr/lib/*so deps
-RUN mkdir /so-deps && cp -L $(ldd /usr/local/nginx/modules/ngx_http_brotli_filter_module.so 2>/dev/null | grep '/usr/lib/' | awk '{ print $3 }' | tr '\n' ' ') /so-deps
+FROM jonasal/nginx-certbot:${JONASAL_NGINX_CERTBOT_TAG} AS production
 
-FROM jonasal/nginx-certbot:${JONASAL_NGINX_CERTBOT_TAG}
-
-WORKDIR /etc/nginx
-COPY --from=builder  /so-deps /usr/lib
-COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_filter_module.so /usr/local/nginx/modules/ngx_http_brotli_filter_module.so
-COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_static_module.so /usr/local/nginx/modules/ngx_http_brotli_static_module.so
+RUN curl -L 'https://bootstrap.pypa.io/get-pip.py' | python3
 
 RUN apk upgrade --no-cache && \
-#    pip3 install --upgrade pip \
-    pip3 install -U certbot-dns-powerdns
+    apk add --no-cache curl && \
+    pip3 install --no-build-isolation -U pip \
+                                         certbot-dns-powerdns \
+                                         jinja2 && \
+    mkdir -p /etc/nginx/app /var/www/html/anti-ddos /templates
 
-COPY configs/nginx.conf configs/ssl_params /etc/nginx/
+WORKDIR /etc/nginx
+
+COPY --from=builder /usr/local/bin      /usr/local/bin
+COPY --from=builder /usr/local/lib      /usr/local/lib
+COPY --from=builder /usr/local/share    /usr/local/share
+COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
+COPY --from=builder /usr/sbin/ /usr/sbin/
+COPY configs/nginx.conf /etc/nginx/
+COPY configs/ssl_params /etc/nginx/
 COPY configs/redirector.conf /etc/nginx/conf.d/redirector.conf
-COPY scripts/run_local_ca.sh /scripts/run_local_ca.sh
+COPY --chmod=750 scripts/run_local_ca.sh /scripts/
+
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+    CMD curl --silent --fail http://localhost/nginx_status --output /dev/null || exit 1
+

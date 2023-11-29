@@ -1,4 +1,5 @@
-# statsd settings
+# statsd settings (https://hub.docker.com/r/prom/statsd-exporter/tags)
+statsd_version_tag: "v0.25.0"
 statsd_udp_port: 9125
 statsd_tcp_port: 9102
 statsd_domain: "statsd:"

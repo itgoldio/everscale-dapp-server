@@ -5,8 +5,8 @@ arangodb_container_name: "arangodb"
 arangodb_port: 8529
 arangodb_user: "root"
 arangodb_web_user: "webadmin"
-arangodb_web_password: "CH@NGE-ME!!!"
-arangodb_password: "CH@NGE-ME!!!"
+arangodb_web_password: "Change_ARANGOWEB_password!"
+arangodb_password: "Change_ARANGODB_password!"
 arangodb_database_name: "blockchain"
 
 arangodb_mem_limit: 16G

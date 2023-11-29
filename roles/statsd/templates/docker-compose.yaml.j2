@@ -1,6 +1,6 @@
 services:
   statsd:
-    image: prom/statsd-exporter:v0.23.1
+    image: prom/statsd-exporter:{{ statsd_version_tag }}
     container_name: statsd
     restart: unless-stopped
     expose:

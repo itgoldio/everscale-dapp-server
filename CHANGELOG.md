@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+
+
+## [2.0.1] - 2023-11-22
+
+### Improvements
+- Docker version and all docker tools global update
+- Nginx proxy component updated
+- Kafka components version update
+
+
 ## [2.0.0] - 2023-04-18
 
 ### Improvements

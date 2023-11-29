@@ -2,11 +2,18 @@
 #
 docker_network_name: "dapp_network"
 
-# Docker version / containerd
+# Docker / containerd version 
 #
-docker_version: "20.10.24"
-containerd_yum_version: "1.6.15"
-containerd_deb_version: "1.6.15-1"
+docker_version: "24.0.7"
+containerd_yum_version: "1.6.24"
+containerd_deb_version: "1.6.24-1"
+
+# Some docker settings
+docker_custom_daemon: false
+docker_experimental_enabled: false
+docker_live_restore_enabled: true
+docker_metrics_port: 9323
+docker_proxy_enabled: false
 
 ################### Docker logging options ##########################
 # READ https://docs.docker.com/config/containers/logging/configure/
@@ -19,21 +26,39 @@ docker_log_opts:
   mode: "non-blocking"
   max-buffer-size: "10m"
 
-# docker_log_driver: "gelf"
-# docker_log_opts:
-#   "gelf-address": "udp://1.2.3.4:12201"
-#   "cache-disabled": "false"
-#   "cache-max-size": "10m"
-#   "cache-max-file": "5"
-#   "mode": "non-blocking"
-#   "max-buffer-size": "10m"
 #####################################################################
 
 
 docker_repo_url: https://download.docker.com/linux
-docker_debuntu_full_package_version: "5:{{ docker_version }}~3-0~{{ ansible_distribution | lower }}-{{ ansible_distribution_release }}"
+docker_debian_full_package_version: "5:{{ docker_version }}-1~{{ ansible_distribution | lower }}.{{ ansible_distribution_major_version }}~{{ ansible_distribution_release }}"
+docker_ubuntu_full_package_version: "5:{{ docker_version }}-1~{{ ansible_distribution | lower }}.{{ ansible_distribution_version }}~{{ ansible_distribution_release }}"
 docker_apt_gpg_key: "{{ docker_repo_url }}/{{ ansible_distribution | lower }}/gpg"
 docker_apt_ignore_key_error: true
 docker_apt_release_channel: stable
 docker_apt_arch: amd64
 docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} {{ docker_apt_release_channel }}"
+docker_python_packages:
+  - docker
+docker_python_packages_todelete:
+  - docker-compose
+docker_compose_plugin_version: "2.18.1"
+docker_compose_plugin_version_ubuntu: "{{ docker_compose_plugin_version }}-1~{{ ansible_distribution | lower }}.{{ ansible_distribution_version }}~{{ ansible_distribution_release }}"
+docker_compose_plugin_version_debian: "{{ docker_compose_plugin_version }}-1~{{ ansible_distribution | lower }}.{{ ansible_distribution_major_version }}~{{ ansible_distribution_release }}"
+
+lazydocker_enabled: false
+lazydocker_version: "0.21.1"
+
+python_repository: https://pypi.org/simple
+
+proxy_env: {}
+
+## docker_additional_plugins installs and configures additional plugins e.g.:
+# docker_additional_plugins:
+#   - name: weaveworks/net-plugin
+#     version: latest_release
+#     enabled: true
+#     options:
+#       WEAVE_MTU: 9000
+#       IPALLOC_RANGE: 10.31.0.0/12"
+docker_additional_plugins: []
+desired_plugin_settings: []
