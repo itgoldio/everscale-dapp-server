@@ -10,6 +10,11 @@
       - wget
       - mc
       - git
+      - sshpass
+      - git
+      - python3 
+      - libgoogle-perftools-dev
+      - rsync
     state: present
 
 - name: Ensure additional dependencies are installed (on Ubuntu < 20.04 and any other systems).

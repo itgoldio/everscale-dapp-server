@@ -18,13 +18,13 @@
     - vars/vars-statsd.yaml
   roles:
     - system
-    - docker
+#    - docker
     - nginx
-    - kafka
-    - arangodb
-    - q-server
-    - statsd
-    - ever-node
+#    - kafka
+#    - arangodb
+#    - q-server
+#    - statsd
+#    - ever-node
   tags: [ "all" ]
 
 
