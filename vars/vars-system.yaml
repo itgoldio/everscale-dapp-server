@@ -21,7 +21,7 @@ everscale_group: "xnode"
 everscale_user: "xnode"
 
 # Rust version (use from https://github.com/tonlabs/ever-node/blob/master/recomended_rust)
-rustup_default_toolchain: "1.70.0"
+rustup_default_toolchain: "1.75.0"
 
 # Rust parameters
 rustup_mirror : https://static.rust-lang.org/rustup/dist

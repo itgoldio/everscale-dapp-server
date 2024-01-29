@@ -50,7 +50,7 @@ ever_node_tools_bin_dir: "/usr/local/bin"
 
 # Get ever node commit id: https://github.com/tonlabs/ever-node/commits
 ever_node_github_repo: "https://github.com/tonlabs/ever-node.git"
-ever_node_github_commit_id: "286132d4a22782fd67756fb39cb81b272be9681d"
+ever_node_github_commit_id: "master"
 
 ever_node_profile_opt_enabled: true
 
@@ -74,11 +74,11 @@ ever_node_tools_github_repo: "https://github.com/tonlabs/ever-node-tools.git"
 ever_node_tools_github_commit_id: "master"
 
 # Recompile ever node tools binary without sources changes: false|true
-ever_node_tools_force_recompile: true
+ever_node_tools_force_recompile: false
 
 # Get tonos cli commit id: https://github.com/tonlabs/tonos-cli/commits"
 tonos_cli_github_repo: "https://github.com/tonlabs/tonos-cli.git"
 tonos_cli_github_commit_id: "master"
 
 # Recompile tonos-cli binary without sources changes: false|true
-tonos_cli_force_recompile: true
+tonos_cli_force_recompile: false

@@ -4,7 +4,7 @@ docker_network_name: "dapp_network"
 
 # Docker / containerd version 
 #
-docker_version: "24.0.7"
+docker_version: "25.0.1"
 containerd_yum_version: "1.6.24"
 containerd_deb_version: "1.6.24-1"
 
